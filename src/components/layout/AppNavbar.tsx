@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'; // Added SheetTitle
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,7 +75,7 @@ export function AppNavbar() {
       <div className="container flex h-16 items-center justify-between">
         {/* Left side: Logo */}
         <div className="flex items-center">
-          <Logo /> {/* Ensure Logo is always visible */}
+          <Logo />
         </div>
 
         {/* Middle: Desktop Navigation Links */}
@@ -84,7 +84,7 @@ export function AppNavbar() {
         </nav>
 
         {/* Right side: User Avatar/Login & Mobile Menu Trigger */}
-        <div className="flex items-center space-x-3"> {/* Adjusted space-x for profile and menu trigger */}
+        <div className="flex items-center space-x-3">
           {/* User Avatar / Login Button */}
           {loading ? (
              <Avatar className="h-9 w-9">
@@ -135,9 +135,10 @@ export function AppNavbar() {
                   <span className="sr-only">Toggle Menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] p-4"> {/* Changed side to "right" */}
+              <SheetContent side="right" className="w-[280px] p-4">
+                <SheetTitle className="sr-only">Main Menu</SheetTitle> {/* Added accessible title */}
                 <div className="mb-6">
-                  <Logo /> {/* Logo inside the sheet */}
+                  <Logo />
                 </div>
                 <nav className="flex flex-col space-y-2">
                   <NavLinks mobile />
