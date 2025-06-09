@@ -1,3 +1,4 @@
+
 "use client";
 
 import type React from 'react';
@@ -10,7 +11,7 @@ const AuthContext = createContext<{
   user: User | null;
   loading: boolean;
   signIn: (email?: string, password?: string) => Promise<void>;
-  signUp: (email?: string, password?: string) => Promise<void>;
+  signUp: (email?: string, password?: string, displayName?: string) => Promise<void>;
   signOut: () => Promise<void>;
 } | null>(null);
 
@@ -63,10 +64,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [handleAuthSuccess]);
 
-  const signUp = useCallback(async (email?: string, password?: string) => {
+  const signUp = useCallback(async (email?: string, password?: string, displayName?: string) => {
     setLoading(true);
     try {
-      const response = await mockCreateUserWithEmailAndPassword(email, password);
+      const response = await mockCreateUserWithEmailAndPassword(email, password, displayName);
       if (response && response.user) {
         handleAuthSuccess(response.user);
       } else {

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,9 +17,11 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Eye, EyeOff } from "lucide-react";
+import React, { useState } from "react";
 
 const signupFormSchema = z.object({
+  displayName: z.string().min(2, { message: "Display name must be at least 2 characters." }).max(50, { message: "Display name cannot exceed 50 characters."}),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string(),
@@ -32,10 +35,13 @@ type SignupFormValues = z.infer<typeof signupFormSchema>;
 export function SignupForm() {
   const { signUp } = useAuth();
   const { toast } = useToast();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
     defaultValues: {
+      displayName: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -44,7 +50,7 @@ export function SignupForm() {
 
   const onSubmit: SubmitHandler<SignupFormValues> = async (data) => {
     try {
-      await signUp(data.email, data.password);
+      await signUp(data.email, data.password, data.displayName);
       toast({
         title: "Signup Successful",
         description: "Welcome to Veritas AI! Redirecting to dashboard...",
@@ -64,6 +70,19 @@ export function SignupForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
+          name="displayName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Display Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Your Name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
@@ -81,9 +100,21 @@ export function SignupForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
-              </FormControl>
+              <div className="relative">
+                <FormControl>
+                  <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} />
+                </FormControl>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
+                </Button>
+              </div>
               <FormMessage />
             </FormItem>
           )}
@@ -94,9 +125,21 @@ export function SignupForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Confirm Password</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
-              </FormControl>
+               <div className="relative">
+                <FormControl>
+                  <Input type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" {...field} />
+                </FormControl>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <span className="sr-only">{showConfirmPassword ? "Hide confirm password" : "Show confirm password"}</span>
+                </Button>
+              </div>
               <FormMessage />
             </FormItem>
           )}

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -24,7 +25,7 @@ import {
   LogOut,
   UserCircle,
   Menu,
-  Settings,
+  // Settings, // Settings icon removed
   Newspaper,
 } from 'lucide-react';
 
@@ -129,12 +130,12 @@ export function AppNavbar() {
                     Profile
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                   <Link href="/settings"> {/* Conceptual settings page */}
+                {/* <DropdownMenuItem asChild>
+                   <Link href="/settings"> 
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
                   </Link>
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" />

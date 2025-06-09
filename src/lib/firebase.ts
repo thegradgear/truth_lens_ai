@@ -1,3 +1,4 @@
+
 // MOCK Firebase configuration and utility functions
 // In a real application, this file would initialize Firebase and export auth, firestore, etc.
 
@@ -35,25 +36,52 @@ export const mockSignInWithEmailAndPassword = async (email?: string, password?: 
       user: {
         uid: "mock-user-id",
         email: email,
-        displayName: "Test User",
+        displayName: "Test User", // Default display name for test user
       },
     };
   }
+  // Simulate a new user if not the test user
+  const storedUserString = localStorage.getItem('veritas-user-signup-' + email);
+  if (storedUserString) {
+    const storedUser = JSON.parse(storedUserString);
+    if (storedUser.password === password) {
+        return {
+            user: {
+                uid: storedUser.uid,
+                email: storedUser.email,
+                displayName: storedUser.displayName,
+            }
+        };
+    }
+  }
+
   throw new Error("Invalid credentials");
 };
 
-export const mockCreateUserWithEmailAndPassword = async (email?: string, password?: string) => {
+export const mockCreateUserWithEmailAndPassword = async (email?: string, password?: string, displayName?: string) => {
    if (!email || !password) {
     throw new Error("Email and password are required.");
+  }
+   if (!displayName) {
+    throw new Error("Display name is required.");
   }
   // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 1000));
    // Simulate successful user creation
-  return {
-    user: {
+   const newUser = {
       uid: `mock-new-user-${Date.now()}`,
       email: email,
-      displayName: email.split('@')[0], // Simple display name
+      displayName: displayName || email.split('@')[0], 
+      password: password, // Storing password in mock for login simulation
+   };
+   // Store this mock user for login simulation
+   localStorage.setItem('veritas-user-signup-' + email, JSON.stringify(newUser));
+
+  return {
+    user: {
+      uid: newUser.uid,
+      email: newUser.email,
+      displayName: newUser.displayName,
     },
   };
 };
@@ -75,7 +103,7 @@ export const mockFetchUserArticles = async (userId: string) => {
   await new Promise(resolve => setTimeout(resolve, 1000));
   // Return some mock data
   return [
-    { id: 'gen1', type: 'generated', title: 'Mock Generated Article 1', content: 'This is a mock generated article.', topic: 'Tech', category: 'AI', tone: 'Neutral', timestamp: new Date().toISOString() },
-    { id: 'det1', type: 'detected', text: 'This is an article to be detected.', result: { label: 'Fake', confidence: 85.3 }, timestamp: new Date().toISOString() },
+    { id: 'gen1', type: 'generated', title: 'Mock Generated Article 1', content: 'This is a mock generated article.', topic: 'Tech', category: 'AI', tone: 'Neutral', timestamp: new Date().toISOString(), userId },
+    { id: 'det1', type: 'detected', text: 'This is an article to be detected.', result: { label: 'Fake', confidence: 85.3 }, timestamp: new Date().toISOString(), userId },
   ];
 };
