@@ -27,7 +27,7 @@ import {
   LogOut,
   UserCircle,
   Menu,
-  Settings, // Added for Settings link
+  Settings,
 } from 'lucide-react';
 
 const navItems = [
@@ -57,8 +57,8 @@ export function AppNavbar() {
 
   const NavLinks = ({ mobile = false }: { mobile?: boolean }) => (
     <>
-      {navItems.map((item) => (
-        <SheetClose asChild={mobile} key={item.href}>
+      {navItems.map((item) => {
+        const linkButton = (
           <Button
             variant="ghost"
             asChild
@@ -73,23 +73,31 @@ export function AppNavbar() {
               {item.label}
             </Link>
           </Button>
-        </SheetClose>
-      ))}
+        );
+        if (mobile) {
+          return <SheetClose asChild key={item.href}>{linkButton}</SheetClose>;
+        }
+        return <React.Fragment key={item.href}>{linkButton}</React.Fragment>;
+      })}
     </>
   );
 
   const UserMenuItems = ({ mobile = false }: { mobile?: boolean}) => (
     <>
-        {userMenuItems.map((item) => (
-             <SheetClose asChild={mobile} key={item.href}>
-                <DropdownMenuItem asChild>
-                    <Link href={item.href} className={cn(mobile && "w-full justify-start text-base py-3")}>
-                        <item.icon className={cn("mr-2 h-4 w-4", mobile && "h-5 w-5")} />
-                        {item.label}
-                    </Link>
-                </DropdownMenuItem>
-             </SheetClose>
-        ))}
+      {userMenuItems.map((item) => {
+        const menuItem = (
+          <DropdownMenuItem asChild>
+            <Link href={item.href} className={cn(mobile && "w-full justify-start text-base py-3")}>
+              <item.icon className={cn("mr-2 h-4 w-4", mobile && "h-5 w-5")} />
+              {item.label}
+            </Link>
+          </DropdownMenuItem>
+        );
+        if (mobile) {
+          return <SheetClose asChild key={item.href}>{menuItem}</SheetClose>;
+        }
+        return <React.Fragment key={item.href}>{menuItem}</React.Fragment>;
+      })}
     </>
   );
 
