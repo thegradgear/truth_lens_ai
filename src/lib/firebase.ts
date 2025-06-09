@@ -36,7 +36,7 @@ export const signInWithEmailAndPassword = async (email?: string, password?: stri
   } catch (error: any) {
      console.error("Firebase sign in error:", error);
      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-email') {
-       throw new Error("Invalid credentials. Please check your email and password. The mock user is user@example.com / password123, or sign up if you don't have an account.");
+       throw new Error("Invalid credentials. Please check your email and password. Or sign up if you don't have an account.");
      }
      throw new Error(error.message || "An unexpected error occurred during sign in.");
   }
@@ -52,9 +52,10 @@ export const createUserWithEmailAndPassword = async (email?: string, password?: 
   
   try {
     const userCredential = await firebaseCreateUserWithEmailAndPassword(auth, email, password);
-    if (userCredential.user) {
-      await updateProfile(userCredential.user, { displayName });
-    }
+    const user = userCredential.user;
+    // Update profile directly after user creation
+    await updateProfile(user, { displayName });
+    // Return the user credential which includes the user with updated profile
     return userCredential;
   } catch (error: any) {
     console.error("Firebase sign up error:", error);
@@ -115,6 +116,8 @@ export const fetchUserArticles = async (userId: string): Promise<Article[]> => {
     });
   } catch (error) {
     console.error("Error fetching user articles from Firestore:", error);
-    throw new Error("Failed to fetch articles.");
+    // Throw the more specific error message from Firestore
+    throw new Error( (error as Error).message || "Failed to fetch articles from Firestore. Check browser console for more details.");
   }
 };
+
