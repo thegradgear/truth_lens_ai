@@ -25,7 +25,6 @@ import {
   LogOut,
   UserCircle,
   Menu,
-  Newspaper,
 } from 'lucide-react';
 
 const navItems = [
@@ -74,33 +73,19 @@ export function AppNavbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
+        {/* Left side: Logo */}
         <div className="flex items-center">
-          <div className="md:hidden mr-2">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-6 w-6" />
-                  <span className="sr-only">Toggle Menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[280px] p-4">
-                <div className="mb-6">
-                  <Logo />
-                </div>
-                <nav className="flex flex-col space-y-2">
-                  <NavLinks mobile />
-                </nav>
-              </SheetContent>
-            </Sheet>
-          </div>
-          <Logo className="hidden md:flex" />
+          <Logo /> {/* Ensure Logo is always visible */}
         </div>
 
+        {/* Middle: Desktop Navigation Links */}
         <nav className="hidden md:flex items-center space-x-2">
           <NavLinks />
         </nav>
 
-        <div className="flex items-center space-x-4">
+        {/* Right side: User Avatar/Login & Mobile Menu Trigger */}
+        <div className="flex items-center space-x-3"> {/* Adjusted space-x for profile and menu trigger */}
+          {/* User Avatar / Login Button */}
           {loading ? (
              <Avatar className="h-9 w-9">
                 <AvatarFallback>...</AvatarFallback>
@@ -140,6 +125,26 @@ export function AppNavbar() {
               <Link href="/login">Sign In</Link>
             </Button>
           )}
+
+          {/* Mobile Menu Trigger */}
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">Toggle Menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[280px] p-4"> {/* Changed side to "right" */}
+                <div className="mb-6">
+                  <Logo /> {/* Logo inside the sheet */}
+                </div>
+                <nav className="flex flex-col space-y-2">
+                  <NavLinks mobile />
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </header>
