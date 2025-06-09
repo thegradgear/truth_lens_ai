@@ -28,7 +28,7 @@ import {
   LogOut,
   UserCircle,
   Menu,
-  Settings,
+  // Settings, // Removed Settings import
 } from 'lucide-react';
 
 const navItems = [
@@ -40,7 +40,7 @@ const navItems = [
 
 const userMenuItems = [
     { href: '/profile', label: 'Profile', icon: UserCircle },
-    { href: '/settings', label: 'Settings', icon: Settings },
+    // { href: '/settings', label: 'Settings', icon: Settings }, // Removed Settings link
 ];
 
 export function AppNavbar() {
@@ -86,8 +86,14 @@ export function AppNavbar() {
   const UserMenuItems = ({ mobile = false }: { mobile?: boolean}) => (
     <>
       {userMenuItems.map((item) => {
+        const menuItemContent = (
+          <>
+            <item.icon className={cn("mr-2 h-4 w-4", mobile && "h-5 w-5")} />
+            {item.label}
+          </>
+        );
+
         if (mobile) {
-          // For mobile sidebar, use Button components
           return (
             <SheetClose asChild key={item.href}>
               <Button
@@ -98,20 +104,15 @@ export function AppNavbar() {
                     pathname === item.href && 'bg-accent text-accent-foreground'
                 )}
               >
-                <Link href={item.href}>
-                  <item.icon className="mr-2 h-5 w-5" />
-                  {item.label}
-                </Link>
+                <Link href={item.href}>{menuItemContent}</Link>
               </Button>
             </SheetClose>
           );
         } else {
-          // For desktop dropdown, use DropdownMenuItem
           return (
             <DropdownMenuItem asChild key={item.href}>
               <Link href={item.href} className={cn(pathname === item.href && 'bg-accent text-accent-foreground')}>
-                <item.icon className="mr-2 h-4 w-4" />
-                {item.label}
+                {menuItemContent}
               </Link>
             </DropdownMenuItem>
           );
@@ -124,20 +125,19 @@ export function AppNavbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
-        {/* Left side: Logo */}
-        <div className="flex items-center mr-4">
+        <div className="flex items-center mr-4 md:mr-6">
           <Logo />
         </div>
 
-        {/* Middle: Desktop Navigation Links */}
         <nav className="hidden md:flex items-center space-x-1 mr-auto">
           <NavLinks />
         </nav>
 
-        {/* Right side: Theme Toggle, User Avatar/Login & Mobile Menu Trigger */}
         <div className="flex items-center space-x-2 md:space-x-3 ml-auto">
+          <div className="hidden md:block">
+            <ThemeToggle align="end"/>
+          </div>
           
-          {/* User Avatar / Login Button */}
           {loading ? (
              <Avatar className="h-9 w-9">
                 <AvatarFallback>...</AvatarFallback>
@@ -173,12 +173,6 @@ export function AppNavbar() {
             </Button>
           )}
 
-           {/* Desktop Theme Toggle moved here to be before mobile menu on small screens */}
-          <div className="hidden md:block">
-            <ThemeToggle align="end"/>
-          </div>
-
-          {/* Mobile Menu Trigger */}
           <div className="md:hidden">
             <Sheet>
               <SheetTrigger asChild>
