@@ -1,8 +1,8 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword, createUserWithEmailAndPassword as firebaseCreateUserWithEmailAndPassword, signOut as firebaseSignOut, updateProfile, type User as FirebaseUser } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword, createUserWithEmailAndPassword as firebaseCreateUserWithEmailAndPassword, signOut as firebaseSignOutAuth, updateProfile, type User as FirebaseUser } from 'firebase/auth';
 import { getFirestore, collection, addDoc, getDocs, query, where, serverTimestamp, orderBy, type Timestamp } from 'firebase/firestore';
-import type { Article, GeneratedArticle, DetectedArticle } from '@/types';
+import type { Article } from '@/types';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -15,7 +15,12 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase App
-const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+let app: FirebaseApp;
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApp();
+}
 
 // Export auth and db instances
 export const auth = getAuth(app);
@@ -25,14 +30,13 @@ export const signInWithEmailAndPassword = async (email?: string, password?: stri
   if (!email || !password) {
     throw new Error("Email and password are required.");
   }
-  // The mock user login is removed to rely solely on Firebase Auth
   try {
     const userCredential = await firebaseSignInWithEmailAndPassword(auth, email, password);
     return userCredential;
   } catch (error: any) {
      console.error("Firebase sign in error:", error);
      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-email') {
-       throw new Error("Invalid credentials. Please check your email and password, or sign up if you don't have an account.");
+       throw new Error("Invalid credentials. Please check your email and password. The mock user is user@example.com / password123, or sign up if you don't have an account.");
      }
      throw new Error(error.message || "An unexpected error occurred during sign in.");
   }
@@ -63,7 +67,7 @@ export const createUserWithEmailAndPassword = async (email?: string, password?: 
 
 export const signOut = async () => {
   try {
-    await firebaseSignOut(auth);
+    await firebaseSignOutAuth(auth);
   } catch (error) {
     console.error("Firebase sign out error:", error);
     throw error;
@@ -82,8 +86,7 @@ export const saveArticle = async (userId: string, articleData: Omit<Article, 'id
       userId,
       timestamp: serverTimestamp(), 
     });
-    // For UI update, we might still return a client-estimated timestamp, but Firestore will have the server one.
-    const { timestamp, ...restOfArticleData } = articleData; // Exclude client-side timestamp if passed
+    const { timestamp, ...restOfArticleData } = articleData; 
     return { id: docRef.id, ...restOfArticleData, userId, timestamp: new Date().toISOString() }; 
   } catch (error) {
     console.error("Error saving article to Firestore:", error);
@@ -115,10 +118,3 @@ export const fetchUserArticles = async (userId: string): Promise<Article[]> => {
     throw new Error("Failed to fetch articles.");
   }
 };
-
-// Renaming old mock functions to avoid conflict - better to remove if fully transitioned
-export const mockSignInWithEmailAndPassword = signInWithEmailAndPassword;
-export const mockCreateUserWithEmailAndPassword = createUserWithEmailAndPassword;
-export const mockSignOut = signOut;
-export const mockSaveArticle = saveArticle;
-export const mockFetchUserArticles = fetchUserArticles;
