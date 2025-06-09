@@ -49,21 +49,18 @@ export const db = getFirestore(app);
 const createUserInFirestore = async (firebaseUser: FirebaseUser) => {
   if (!firebaseUser.email) {
     console.warn("User email is null, cannot create Firestore document properly.");
-    // Optionally throw an error or handle as appropriate for your app
-    // For now, we'll proceed but log a warning.
   }
   const userRef = doc(db, 'users', firebaseUser.uid);
   try {
     await setDoc(userRef, {
       uid: firebaseUser.uid,
-      email: firebaseUser.email || 'N/A', // Fallback if email is null
+      email: firebaseUser.email || 'N/A', 
       displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Anonymous User',
       createdAt: serverTimestamp(),
     });
     console.log("User document created in Firestore for UID:", firebaseUser.uid);
   } catch (error) {
     console.error("Error creating user document in Firestore:", error);
-    // Optionally re-throw or handle error appropriately
   }
 };
 
@@ -76,10 +73,12 @@ export const signInWithEmailAndPassword = async (email?: string, password?: stri
     const userCredential = await firebaseSignInWithEmailAndPassword(auth, email, password);
     return userCredential;
   } catch (error: any) {
-     console.error("Firebase sign in error:", error);
      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-email') {
+       // This is an expected error type, user will get a toast.
        throw new Error("Invalid credentials. Please check your email and password, or sign up if you don't have an account.");
      }
+     // For other, unexpected Firebase errors, log them and then re-throw.
+     console.error("Unexpected Firebase sign in error:", error);
      throw new Error(error.message || "An unexpected error occurred during sign in.");
   }
 };
@@ -95,11 +94,8 @@ export const createUserWithEmailAndPassword = async (email?: string, password?: 
   try {
     const userCredential = await firebaseCreateUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-    // Update profile directly after user creation
     await updateProfile(user, { displayName });
-    // Create user document in Firestore
     await createUserInFirestore(user); 
-    // Return the user credential which includes the user with updated profile
     return userCredential;
   } catch (error: any) {
     console.error("Firebase sign up error:", error);
@@ -125,12 +121,9 @@ export const saveArticle = async (userId: string, articleData: Omit<Article, 'id
     throw new Error("User ID is required to save an article.");
   }
   try {
-    // Save to a nested 'articles' subcollection under the user's document
     const userArticlesCollectionRef = collection(db, 'users', userId, 'articles');
     const docRef = await addDoc(userArticlesCollectionRef, {
       ...articleData,
-      // userId is already in articleData and also part of the path structure, 
-      // keeping it in the document can be useful for some queries or rules.
       timestamp: serverTimestamp(), 
     });
     const { timestamp, ...restOfArticleData } = articleData; 
@@ -147,7 +140,6 @@ export const fetchUserArticles = async (userId: string): Promise<Article[]> => {
     return [];
   }
   try {
-    // Fetch from the nested 'articles' subcollection under the user's document
     const userArticlesCollectionRef = collection(db, 'users', userId, 'articles');
     const q = query(userArticlesCollectionRef, orderBy("timestamp", "desc"));
     const querySnapshot = await getDocs(q);
@@ -163,7 +155,6 @@ export const fetchUserArticles = async (userId: string): Promise<Article[]> => {
     });
   } catch (error) {
     console.error("Error fetching user articles from Firestore:", error);
-    // Throw the more specific error message from Firestore
     throw new Error( (error as Error).message || "Failed to fetch articles from Firestore. Check browser console for more details.");
   }
 };
