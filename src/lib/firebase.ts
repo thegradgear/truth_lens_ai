@@ -1,109 +1,124 @@
 
-// MOCK Firebase configuration and utility functions
-// In a real application, this file would initialize Firebase and export auth, firestore, etc.
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword, createUserWithEmailAndPassword as firebaseCreateUserWithEmailAndPassword, signOut as firebaseSignOut, updateProfile, type User as FirebaseUser } from 'firebase/auth';
+import { getFirestore, collection, addDoc, getDocs, query, where, serverTimestamp, orderBy, type Timestamp } from 'firebase/firestore';
+import type { Article, GeneratedArticle, DetectedArticle } from '@/types';
 
-// Replace with your actual Firebase config
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Mock Firebase App (conceptual)
-// let app: any;
-// if (typeof window !== 'undefined' && !getApps().length) {
-//   app = initializeApp(firebaseConfig);
-// }
+// Initialize Firebase App
+const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Mock Auth (conceptual)
-// export const auth = app ? getAuth(app) : null;
+// Export auth and db instances
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 
-// Mock Firestore (conceptual)
-// export const db = app ? getFirestore(app) : null;
-
-// This is a placeholder. In a real app, you'd use Firebase SDK.
-export const mockSignInWithEmailAndPassword = async (email?: string, password?: string) => {
+export const signInWithEmailAndPassword = async (email?: string, password?: string) => {
   if (!email || !password) {
     throw new Error("Email and password are required.");
   }
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  if (email === "user@example.com" && password === "password123") {
-    return {
-      user: {
-        uid: "mock-user-id",
-        email: email,
-        displayName: "Test User", // Default display name for test user
-      },
-    };
+  // The mock user login is removed to rely solely on Firebase Auth
+  try {
+    const userCredential = await firebaseSignInWithEmailAndPassword(auth, email, password);
+    return userCredential;
+  } catch (error: any) {
+     console.error("Firebase sign in error:", error);
+     if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-email') {
+       throw new Error("Invalid credentials. Please check your email and password, or sign up if you don't have an account.");
+     }
+     throw new Error(error.message || "An unexpected error occurred during sign in.");
   }
-  // Simulate a new user if not the test user
-  const storedUserString = localStorage.getItem('veritas-user-signup-' + email);
-  if (storedUserString) {
-    const storedUser = JSON.parse(storedUserString);
-    if (storedUser.password === password) {
-        return {
-            user: {
-                uid: storedUser.uid,
-                email: storedUser.email,
-                displayName: storedUser.displayName,
-            }
-        };
-    }
-  }
-
-  throw new Error("Invalid credentials");
 };
 
-export const mockCreateUserWithEmailAndPassword = async (email?: string, password?: string, displayName?: string) => {
+export const createUserWithEmailAndPassword = async (email?: string, password?: string, displayName?: string) => {
    if (!email || !password) {
     throw new Error("Email and password are required.");
   }
    if (!displayName) {
     throw new Error("Display name is required.");
   }
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1000));
-   // Simulate successful user creation
-   const newUser = {
-      uid: `mock-new-user-${Date.now()}`,
-      email: email,
-      displayName: displayName || email.split('@')[0], 
-      password: password, // Storing password in mock for login simulation
-   };
-   // Store this mock user for login simulation
-   localStorage.setItem('veritas-user-signup-' + email, JSON.stringify(newUser));
-
-  return {
-    user: {
-      uid: newUser.uid,
-      email: newUser.email,
-      displayName: newUser.displayName,
-    },
-  };
+  
+  try {
+    const userCredential = await firebaseCreateUserWithEmailAndPassword(auth, email, password);
+    if (userCredential.user) {
+      await updateProfile(userCredential.user, { displayName });
+    }
+    return userCredential;
+  } catch (error: any) {
+    console.error("Firebase sign up error:", error);
+    if (error.code === 'auth/email-already-in-use') {
+      throw new Error("This email is already in use. Please try logging in or use a different email.");
+    }
+    throw new Error(error.message || "An unexpected error occurred during sign up.");
+  }
 };
 
-export const mockSignOut = async () => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 500));
+export const signOut = async () => {
+  try {
+    await firebaseSignOut(auth);
+  } catch (error) {
+    console.error("Firebase sign out error:", error);
+    throw error;
+  }
 };
 
-// Add more mock functions as needed (e.g., for Firestore interactions)
-export const mockSaveArticle = async (userId: string, articleData: any) => {
-  console.log(`Mock saving article for user ${userId}:`, articleData);
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return { id: `mock-article-${Date.now()}`, ...articleData };
+const ARTICLES_COLLECTION = 'articles';
+
+export const saveArticle = async (userId: string, articleData: Omit<Article, 'id' | 'timestamp'> & { timestamp?: any }) => {
+  if (!userId) {
+    throw new Error("User ID is required to save an article.");
+  }
+  try {
+    const docRef = await addDoc(collection(db, ARTICLES_COLLECTION), {
+      ...articleData,
+      userId,
+      timestamp: serverTimestamp(), 
+    });
+    // For UI update, we might still return a client-estimated timestamp, but Firestore will have the server one.
+    const { timestamp, ...restOfArticleData } = articleData; // Exclude client-side timestamp if passed
+    return { id: docRef.id, ...restOfArticleData, userId, timestamp: new Date().toISOString() }; 
+  } catch (error) {
+    console.error("Error saving article to Firestore:", error);
+    throw new Error("Failed to save article.");
+  }
 };
 
-export const mockFetchUserArticles = async (userId: string) => {
-  console.log(`Mock fetching articles for user ${userId}`);
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  // Return some mock data
-  return [
-    { id: 'gen1', type: 'generated', title: 'Mock Generated Article 1', content: 'This is a mock generated article.', topic: 'Tech', category: 'AI', tone: 'Neutral', timestamp: new Date().toISOString(), userId },
-    { id: 'det1', type: 'detected', text: 'This is an article to be detected.', result: { label: 'Fake', confidence: 85.3 }, timestamp: new Date().toISOString(), userId },
-  ];
+export const fetchUserArticles = async (userId: string): Promise<Article[]> => {
+  if (!userId) {
+    console.warn("No user ID provided to fetchUserArticles, returning empty array.");
+    return [];
+  }
+  try {
+    const articlesRef = collection(db, ARTICLES_COLLECTION);
+    const q = query(articlesRef, where("userId", "==", userId), orderBy("timestamp", "desc"));
+    const querySnapshot = await getDocs(q);
+    
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      const firestoreTimestamp = data.timestamp as Timestamp;
+      return {
+        id: doc.id,
+        ...data,
+        timestamp: firestoreTimestamp ? firestoreTimestamp.toDate().toISOString() : new Date().toISOString(),
+      } as Article;
+    });
+  } catch (error) {
+    console.error("Error fetching user articles from Firestore:", error);
+    throw new Error("Failed to fetch articles.");
+  }
 };
+
+// Renaming old mock functions to avoid conflict - better to remove if fully transitioned
+export const mockSignInWithEmailAndPassword = signInWithEmailAndPassword;
+export const mockCreateUserWithEmailAndPassword = createUserWithEmailAndPassword;
+export const mockSignOut = signOut;
+export const mockSaveArticle = saveArticle;
+export const mockFetchUserArticles = fetchUserArticles;

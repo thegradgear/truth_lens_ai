@@ -1,45 +1,55 @@
+
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArticleCard } from '@/components/shared/ArticleCard';
 import type { Article } from '@/types';
-import { mockFetchUserArticles } from '@/lib/firebase'; // Mocked
+import { fetchUserArticles } from '@/lib/firebase'; // Changed from mockFetchUserArticles
 import { Loader2, ListFilter, Inbox, Search } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Not used currently
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function SavedHistoryPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'generated' | 'detected'>('all');
   const [filterResult, setFilterResult] = useState<'all' | 'Real' | 'Fake'>('all'); // For detected articles
 
-  useEffect(() => {
-    async function fetchArticles() {
-      if (user?.uid) {
-        setIsLoading(true);
-        try {
-          const userArticles = await mockFetchUserArticles(user.uid); // Using mock function
-          setArticles(userArticles as Article[]); // Type assertion for mock data
-        } catch (error) {
-          console.error("Failed to fetch articles:", error);
-          // Handle error (e.g., show toast)
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
+  const loadArticles = useCallback(async () => {
+    if (user?.uid) {
+      setIsLoading(true);
+      try {
+        const userArticles = await fetchUserArticles(user.uid); 
+        setArticles(userArticles as Article[]); 
+      } catch (error: any) {
+        console.error("Failed to fetch articles:", error);
+        toast({
+          title: "Error Fetching Articles",
+          description: error.message || "Could not load your saved articles. Please try again later.",
+          variant: "destructive",
+        });
+        setArticles([]); // Clear articles on error
+      } finally {
         setIsLoading(false);
       }
+    } else {
+      setArticles([]);
+      setIsLoading(false);
     }
-    fetchArticles();
-  }, [user]);
+  }, [user, toast]);
+
+  useEffect(() => {
+    loadArticles();
+  }, [loadArticles]);
 
   const filteredArticles = useMemo(() => {
     return articles
@@ -76,6 +86,19 @@ export default function SavedHistoryPage() {
       </div>
     );
   }
+  
+  if (!user) {
+     return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Inbox className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+        <h3 className="text-xl font-semibold">Please Log In</h3>
+        <p className="text-muted-foreground">
+          Log in to view your saved articles.
+        </p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="space-y-8">
@@ -157,6 +180,9 @@ export default function SavedHistoryPage() {
   );
 }
 
+// Extracted Label component as it's simple and locally used.
+// If used elsewhere, consider moving to a shared components directory.
 function Label({ htmlFor, children }: {htmlFor: string, children: React.ReactNode}) {
     return <label htmlFor={htmlFor} className="block text-sm font-medium text-muted-foreground mb-1">{children}</label>
 }
+

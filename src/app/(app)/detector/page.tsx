@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -13,7 +14,7 @@ import { detectFakeNews, type DetectFakeNewsInput, type DetectFakeNewsOutput } f
 import { ArticleCard } from '@/components/shared/ArticleCard';
 import type { DetectedArticle } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
-import { mockSaveArticle } from '@/lib/firebase'; // Mocked
+import { saveArticle } from '@/lib/firebase'; // Changed from mockSaveArticle
 import { Loader2, ScanSearch, Save } from 'lucide-react';
 
 const detectorFormSchema = z.object({
@@ -27,6 +28,7 @@ export default function DetectorPage() {
   const { toast } = useToast();
   const [detectionResult, setDetectionResult] = useState<DetectedArticle | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const form = useForm<DetectorFormValues>({
     resolver: zodResolver(detectorFormSchema),
@@ -52,8 +54,8 @@ export default function DetectorPage() {
             label: result.label,
             confidence: result.confidence,
           },
-          timestamp: new Date().toISOString(),
-          userId: user?.uid,
+          timestamp: new Date().toISOString(), // Client-side timestamp, Firestore will use serverTimestamp
+          userId: user?.uid, // Will be added by saveArticle function too
         };
         setDetectionResult(newDetection);
         toast({
@@ -75,17 +77,24 @@ export default function DetectorPage() {
     }
   };
 
-  const handleSaveDetection = async (article: DetectedArticle) => {
-    if (!user) {
+  const handleSaveDetection = async (articleToSave: DetectedArticle) => {
+    if (!user?.uid) {
       toast({ title: "Error", description: "You must be logged in to save detections.", variant: "destructive" });
       return;
     }
+    if (!articleToSave) return;
+
+    setIsSaving(true);
     try {
-      await mockSaveArticle(user.uid, article); // Using mock function
+      // Prepare data for Firestore, removing client-side id if it exists
+      const { id, ...dataToSave } = articleToSave;
+      const savedData = await saveArticle(user.uid, dataToSave); 
       toast({ title: "Detection Saved!", description: "The detection result has been saved to your history." });
-      setDetectionResult(prev => prev ? {...prev, id: `mock-saved-${Date.now()}`} : null); // Mark as saved (conceptually)
+      setDetectionResult(prev => prev ? {...prev, id: savedData.id } : null); 
     } catch (error: any) {
       toast({ title: "Save Failed", description: error.message || "Could not save the detection.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -112,13 +121,14 @@ export default function DetectorPage() {
                         placeholder="Paste the full text of the news article here..."
                         className="min-h-[200px] resize-y"
                         {...field}
+                        disabled={isLoading || isSaving}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full md:w-auto" disabled={isLoading}>
+              <Button type="submit" className="w-full md:w-auto" disabled={isLoading || isSaving}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing...
@@ -149,8 +159,14 @@ export default function DetectorPage() {
       )}
 
       {detectionResult && (
-        <ArticleCard article={detectionResult} onSave={() => handleSaveDetection(detectionResult)} showSaveButton={!detectionResult.id} />
+        <ArticleCard 
+          article={detectionResult} 
+          onSave={handleSaveDetection} 
+          showSaveButton={!detectionResult.id && !isSaving} 
+          isSaving={isSaving}
+        />
       )}
     </div>
   );
 }
+

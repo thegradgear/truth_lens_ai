@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -8,14 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea'; // If generated content is long
+// import { Textarea } from '@/components/ui/textarea'; // Not used for generated article display, ArticleCard handles it
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { generateFakeNewsArticle, type GenerateFakeNewsArticleInput, type GenerateFakeNewsArticleOutput } from '@/ai/flows/generate-fake-news-article';
 import { ArticleCard } from '@/components/shared/ArticleCard';
 import type { GeneratedArticle } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
-import { mockSaveArticle } from '@/lib/firebase'; // Mocked
+import { saveArticle } from '@/lib/firebase'; // Changed from mockSaveArticle
 import { Loader2, Wand2, Save } from 'lucide-react';
 
 const generatorFormSchema = z.object({
@@ -34,6 +35,7 @@ export default function GeneratorPage() {
   const { toast } = useToast();
   const [generatedArticle, setGeneratedArticle] = useState<GeneratedArticle | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const form = useForm<GeneratorFormValues>({
     resolver: zodResolver(generatorFormSchema),
@@ -58,12 +60,12 @@ export default function GeneratorPage() {
       if (result.article) {
         const newArticle: GeneratedArticle = {
           type: 'generated',
-          title: `${data.category}: ${data.topic.substring(0,30)}... (${data.tone})`, // Auto-generate a title
+          title: `${data.category}: ${data.topic.substring(0,30)}... (${data.tone})`, 
           content: result.article,
           topic: data.topic,
           category: data.category,
           tone: data.tone,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date().toISOString(), // Client-side timestamp, Firestore will use serverTimestamp
           userId: user?.uid, 
         };
         setGeneratedArticle(newArticle);
@@ -86,18 +88,24 @@ export default function GeneratorPage() {
     }
   };
 
-  const handleSaveArticle = async (article: GeneratedArticle) => {
-    if (!user) {
+  const handleSaveArticle = async (articleToSave: GeneratedArticle) => {
+    if (!user?.uid) {
       toast({ title: "Error", description: "You must be logged in to save articles.", variant: "destructive" });
       return;
     }
+    if (!articleToSave) return;
+
+    setIsSaving(true);
     try {
-      await mockSaveArticle(user.uid, article); // Using mock function
+      // Prepare data for Firestore, removing client-side id if it exists
+      const { id, ...dataToSave } = articleToSave;
+      const savedData = await saveArticle(user.uid, dataToSave);
       toast({ title: "Article Saved!", description: "The article has been saved to your history." });
-      // Potentially update UI or clear saved article to prevent re-saving
-      setGeneratedArticle(prev => prev ? {...prev, id: `mock-saved-${Date.now()}`} : null); // Mark as saved (conceptually)
+      setGeneratedArticle(prev => prev ? {...prev, id: savedData.id} : null); 
     } catch (error: any) {
       toast({ title: "Save Failed", description: error.message || "Could not save the article.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -121,7 +129,7 @@ export default function GeneratorPage() {
                   <FormItem>
                     <FormLabel>Topic</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Discovery of a new planet, A celebrity's unusual pet" {...field} />
+                      <Input placeholder="e.g., Discovery of a new planet, A celebrity's unusual pet" {...field} disabled={isLoading || isSaving} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -134,7 +142,7 @@ export default function GeneratorPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || isSaving}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a category" />
@@ -156,7 +164,7 @@ export default function GeneratorPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tone</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || isSaving}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a tone" />
@@ -173,7 +181,7 @@ export default function GeneratorPage() {
                   )}
                 />
               </div>
-              <Button type="submit" className="w-full md:w-auto" disabled={isLoading}>
+              <Button type="submit" className="w-full md:w-auto" disabled={isLoading || isSaving}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
@@ -204,8 +212,14 @@ export default function GeneratorPage() {
       )}
 
       {generatedArticle && (
-         <ArticleCard article={generatedArticle} onSave={() => handleSaveArticle(generatedArticle)} showSaveButton={!generatedArticle.id}/>
+         <ArticleCard 
+            article={generatedArticle} 
+            onSave={handleSaveArticle} 
+            showSaveButton={!generatedArticle.id && !isSaving}
+            isSaving={isSaving}
+        />
       )}
     </div>
   );
 }
+
