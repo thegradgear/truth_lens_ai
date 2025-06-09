@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetClose } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import {
   DropdownMenu,
@@ -58,21 +58,22 @@ export function AppNavbar() {
   const NavLinks = ({ mobile = false }: { mobile?: boolean }) => (
     <>
       {navItems.map((item) => (
-        <Button
-          key={item.href}
-          variant="ghost"
-          asChild
-          className={cn(
-            'justify-start w-full text-left',
-            pathname === item.href && 'bg-accent text-accent-foreground',
-            mobile ? 'text-base py-3' : 'text-sm'
-          )}
-        >
-          <Link href={item.href}>
-            <item.icon className={cn("mr-2 h-4 w-4", mobile && "h-5 w-5")} />
-            {item.label}
-          </Link>
-        </Button>
+        <SheetClose asChild={mobile} key={item.href}>
+          <Button
+            variant="ghost"
+            asChild
+            className={cn(
+              'justify-start w-full text-left',
+              pathname === item.href && 'bg-accent text-accent-foreground',
+              mobile ? 'text-base py-3' : 'text-sm'
+            )}
+          >
+            <Link href={item.href}>
+              <item.icon className={cn("mr-2 h-4 w-4", mobile && "h-5 w-5")} />
+              {item.label}
+            </Link>
+          </Button>
+        </SheetClose>
       ))}
     </>
   );
@@ -97,18 +98,21 @@ export function AppNavbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         {/* Left side: Logo */}
-        <div className="flex items-center mr-auto md:mr-4">
+        <div className="flex items-center mr-4">
           <Logo />
         </div>
 
         {/* Middle: Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center space-x-1">
+        <nav className="hidden md:flex items-center space-x-1 mr-auto">
           <NavLinks />
         </nav>
 
         {/* Right side: Theme Toggle, User Avatar/Login & Mobile Menu Trigger */}
         <div className="flex items-center space-x-2 md:space-x-3 ml-auto">
-          <ThemeToggle align="end"/>
+          <div className="hidden md:block">
+            <ThemeToggle align="end"/>
+          </div>
+          
           {/* User Avatar / Login Button */}
           {loading ? (
              <Avatar className="h-9 w-9">
