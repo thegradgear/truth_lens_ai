@@ -1,7 +1,7 @@
 
 "use client";
 
-import * as React from 'react'; // Added this line
+import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -86,18 +86,36 @@ export function AppNavbar() {
   const UserMenuItems = ({ mobile = false }: { mobile?: boolean}) => (
     <>
       {userMenuItems.map((item) => {
-        const menuItem = (
-          <DropdownMenuItem asChild>
-            <Link href={item.href} className={cn(mobile && "w-full justify-start text-base py-3")}>
-              <item.icon className={cn("mr-2 h-4 w-4", mobile && "h-5 w-5")} />
-              {item.label}
-            </Link>
-          </DropdownMenuItem>
-        );
         if (mobile) {
-          return <SheetClose asChild key={item.href}>{menuItem}</SheetClose>;
+          // For mobile sidebar, use Button components
+          return (
+            <SheetClose asChild key={item.href}>
+              <Button
+                variant="ghost"
+                asChild
+                className={cn(
+                    'justify-start w-full text-left text-base py-3',
+                    pathname === item.href && 'bg-accent text-accent-foreground'
+                )}
+              >
+                <Link href={item.href}>
+                  <item.icon className="mr-2 h-5 w-5" />
+                  {item.label}
+                </Link>
+              </Button>
+            </SheetClose>
+          );
+        } else {
+          // For desktop dropdown, use DropdownMenuItem
+          return (
+            <DropdownMenuItem asChild key={item.href}>
+              <Link href={item.href} className={cn(pathname === item.href && 'bg-accent text-accent-foreground')}>
+                <item.icon className="mr-2 h-4 w-4" />
+                {item.label}
+              </Link>
+            </DropdownMenuItem>
+          );
         }
-        return <React.Fragment key={item.href}>{menuItem}</React.Fragment>;
       })}
     </>
   );
@@ -118,9 +136,6 @@ export function AppNavbar() {
 
         {/* Right side: Theme Toggle, User Avatar/Login & Mobile Menu Trigger */}
         <div className="flex items-center space-x-2 md:space-x-3 ml-auto">
-          <div className="hidden md:block">
-            <ThemeToggle align="end"/>
-          </div>
           
           {/* User Avatar / Login Button */}
           {loading ? (
@@ -157,6 +172,11 @@ export function AppNavbar() {
               <Link href="/login">Sign In</Link>
             </Button>
           )}
+
+           {/* Desktop Theme Toggle moved here to be before mobile menu on small screens */}
+          <div className="hidden md:block">
+            <ThemeToggle align="end"/>
+          </div>
 
           {/* Mobile Menu Trigger */}
           <div className="md:hidden">
