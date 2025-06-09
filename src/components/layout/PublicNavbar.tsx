@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Logo } from './Logo';
 import { LogIn, UserPlus, Info, Zap, Menu } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/components/ui/sheet'; // Added SheetTitle
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/components/ui/sheet'; 
 import { usePathname } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 
 const navLinksConfig = [
-  { href: '#features', label: 'Features', icon: Zap, desktopOnly: false },
-  { href: '#about', label: 'About', icon: Info, desktopOnly: false },
+  { href: '/#features', label: 'Features', icon: Zap, desktopOnly: false }, // Updated href for smooth scroll
+  { href: '/#about', label: 'About', icon: Info, desktopOnly: false }, // Updated href for smooth scroll
   { href: '/login', label: 'Sign In', icon: LogIn, desktopOnly: false, variant: 'ghost' as const },
   { href: '/signup', label: 'Sign Up', icon: UserPlus, desktopOnly: false, variant: 'default' as const },
 ];
@@ -21,11 +21,13 @@ export function PublicNavbar() {
   const pathname = usePathname();
 
   useEffect(() => {
+    // Close sheet on pathname change
     if (isSheetOpen) {
       setIsSheetOpen(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
 
   const desktopNavLinks = navLinksConfig.map((link) => (
     <Button
@@ -47,7 +49,7 @@ export function PublicNavbar() {
         variant="ghost" 
         asChild
         className="w-full justify-start text-base py-3"
-        onClick={() => setIsSheetOpen(false)}
+        onClick={() => setIsSheetOpen(false)} // Ensure sheet closes on link click
       >
         <Link href={link.href}>
           <link.icon className="mr-2 h-5 w-5" />
@@ -74,7 +76,7 @@ export function PublicNavbar() {
                 <span className="sr-only">Toggle Menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[280px] p-0 pt-6">
+            <SheetContent side="right" className="w-[280px] p-0 pt-6">
               <SheetTitle className="sr-only">Mobile Navigation Menu</SheetTitle>
               <div className="px-4 mb-6">
                 <Logo />
@@ -89,4 +91,3 @@ export function PublicNavbar() {
     </header>
   );
 }
-
