@@ -1,17 +1,16 @@
 
 "use client";
 
-import type React from 'react';
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut as firebaseSignOut, // aliased to avoid conflict with local signOut name
-  auth // import auth from firebase.ts
-} from '@/lib/firebase'; 
-import type { User as AuthUserType } from '@/types'; 
-import type { User as FirebaseUserType } from 'firebase/auth'; // Firebase's User type
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  auth
+} from '@/lib/firebase';
+import type { User as AuthUserType } from '@/types';
+import type { User as FirebaseUserType } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const AuthContext = createContext<{
@@ -37,7 +36,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
         };
         setUser(appUser);
-        localStorage.setItem('veritas-user', JSON.stringify(appUser)); // Keep for quick UI updates if needed
+        localStorage.setItem('veritas-user', JSON.stringify(appUser));
       } else {
         setUser(null);
         localStorage.removeItem('veritas-user');
@@ -47,7 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     return () => unsubscribe();
   }, []);
-  
+
   const handleAuthSuccess = useCallback((firebaseUser: FirebaseUserType) => {
     const appUser: AuthUserType = {
       uid: firebaseUser.uid,
@@ -56,7 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
     setUser(appUser);
     localStorage.setItem('veritas-user', JSON.stringify(appUser));
-    
+
     const redirectAfterLogin = localStorage.getItem('redirectAfterLogin');
     if (redirectAfterLogin) {
         router.push(redirectAfterLogin);
@@ -83,12 +82,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error("Sign in error in AuthContext:", error);
       setLoading(false);
-      throw error; 
+      throw error;
     }
   }, [handleAuthSuccess]);
 
   const signUp = useCallback(async (email?: string, password?: string, displayName?: string) => {
-    if (!email || !password || !displayName) {
+   if (!email || !password || !displayName) {
        setLoading(false);
       throw new Error("Email, password, and display name are required.");
     }
@@ -110,7 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = useCallback(async () => {
     setLoading(true);
     try {
-      await firebaseSignOut(); // Using the aliased import
+      await firebaseSignOut();
       setUser(null);
       localStorage.removeItem('veritas-user');
       router.push('/login');
@@ -122,8 +121,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [router]);
 
   useEffect(() => {
-    // This effect handles redirection if user is not logged in and tries to access protected routes.
-    // It relies on the onAuthStateChanged listener to set user and loading states.
     const protectedRoutes = ['/dashboard', '/generator', '/detector', '/saved', '/profile', '/settings'];
     if (!loading && !user && protectedRoutes.includes(pathname)) {
       localStorage.setItem('redirectAfterLogin', pathname);
@@ -146,4 +143,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
