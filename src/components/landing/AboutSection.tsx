@@ -1,0 +1,103 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Lightbulb, Target, Users } from 'lucide-react';
+import Image from 'next/image';
+
+export function AboutSection() {
+  return (
+    <section id="about" className="py-16 md:py-24 bg-background">
+      <div className="container px-4 md:px-6">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">About Veritas AI</h2>
+          <p className="mt-4 text-lg text-muted-foreground">
+            Dedicated to fostering media literacy and critical thinking in the digital age.
+          </p>
+        </div>
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 items-start">
+          <Card className="shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader className="items-center">
+              <div className="p-3 rounded-full bg-primary/10 text-primary mb-2">
+                <Lightbulb className="h-8 w-8" />
+              </div>
+              <CardTitle className="font-headline text-xl">Our Mission</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center text-muted-foreground">
+              To provide accessible and powerful AI tools that help users discern truth from misinformation, and understand the nuances of AI-generated content.
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader className="items-center">
+               <div className="p-3 rounded-full bg-primary/10 text-primary mb-2">
+                <Target className="h-8 w-8" />
+              </div>
+              <CardTitle className="font-headline text-xl">Our Vision</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center text-muted-foreground">
+              A world where individuals are equipped to critically evaluate information, fostering a more informed and resilient society against the tide of disinformation.
+            </CardContent>
+          </Card>
+          <Card className="shadow-lg hover:shadow-xl transition-shadow md:col-span-2 lg:col-span-1">
+            <CardHeader className="items-center">
+              <div className="p-3 rounded-full bg-primary/10 text-primary mb-2">
+                <Users className="h-8 w-8" />
+              </div>
+              <CardTitle className="font-headline text-xl">Our Team</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center text-muted-foreground">
+              Composed of passionate AI researchers, developers, and designers committed to ethical AI and empowering users with knowledge.
+            </CardContent>
+          </Card>
+        </div>
+        <div className="mt-16 grid md:grid-cols-2 gap-8 items-center">
+            <div>
+                <h3 className="text-2xl font-bold tracking-tight sm:text-3xl font-headline mb-4">Why Veritas AI?</h3>
+                <p className="text-muted-foreground mb-4">
+                    In an era of information overload, distinguishing credible news from fabricated stories is more challenging than ever. Veritas AI leverages state-of-the-art artificial intelligence to provide you with tools for both critical analysis and creative exploration.
+                </p>
+                <ul className="space-y-2 text-muted-foreground">
+                    <li className="flex items-start">
+                        <CheckIcon className="h-5 w-5 text-primary mr-2 mt-1 shrink-0" />
+                        <span><strong>Advanced Detection:</strong> Utilize our ML model trained on vast datasets to identify potential fake news.</span>
+                    </li>
+                    <li className="flex items-start">
+                        <CheckIcon className="h-5 w-5 text-primary mr-2 mt-1 shrink-0" />
+                        <span><strong>Ethical Generation:</strong> Explore how AI can craft narratives for educational and creative purposes.</span>
+                    </li>
+                    <li className="flex items-start">
+                        <CheckIcon className="h-5 w-5 text-primary mr-2 mt-1 shrink-0" />
+                        <span><strong>User-Focused:</strong> Designed with simplicity and ease-of-use in mind for everyone.</span>
+                    </li>
+                </ul>
+            </div>
+            <div className="relative aspect-square rounded-lg overflow-hidden shadow-lg">
+                 <Image
+                    src="https://placehold.co/600x600.png"
+                    alt="Team working on AI"
+                    layout="fill"
+                    objectFit="cover"
+                    data-ai-hint="team collaboration"
+                />
+            </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}

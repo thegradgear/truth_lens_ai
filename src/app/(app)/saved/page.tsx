@@ -1,0 +1,162 @@
+"use client";
+
+import { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArticleCard } from '@/components/shared/ArticleCard';
+import type { Article } from '@/types';
+import { mockFetchUserArticles } from '@/lib/firebase'; // Mocked
+import { Loader2, ListFilter, Inbox, Search } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+
+
+export default function SavedHistoryPage() {
+  const { user } = useAuth();
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'generated' | 'detected'>('all');
+  const [filterResult, setFilterResult] = useState<'all' | 'Real' | 'Fake'>('all'); // For detected articles
+
+  useEffect(() => {
+    async function fetchArticles() {
+      if (user?.uid) {
+        setIsLoading(true);
+        try {
+          const userArticles = await mockFetchUserArticles(user.uid); // Using mock function
+          setArticles(userArticles as Article[]); // Type assertion for mock data
+        } catch (error) {
+          console.error("Failed to fetch articles:", error);
+          // Handle error (e.g., show toast)
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setIsLoading(false);
+      }
+    }
+    fetchArticles();
+  }, [user]);
+
+  const filteredArticles = useMemo(() => {
+    return articles
+      .filter(article => {
+        if (filterType !== 'all' && article.type !== filterType) {
+          return false;
+        }
+        if (article.type === 'detected' && filterResult !== 'all' && article.result.label !== filterResult) {
+          return false;
+        }
+        if (searchTerm) {
+          const term = searchTerm.toLowerCase();
+          if (article.type === 'generated') {
+            return article.title.toLowerCase().includes(term) ||
+                   article.content.toLowerCase().includes(term) ||
+                   article.topic.toLowerCase().includes(term) ||
+                   article.category.toLowerCase().includes(term) ||
+                   article.tone.toLowerCase().includes(term);
+          } else if (article.type === 'detected') {
+            return article.text.toLowerCase().includes(term);
+          }
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [articles, searchTerm, filterType, filterResult]);
+
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Loading your saved articles...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-2xl md:text-3xl font-headline">Your Saved History</CardTitle>
+          <CardDescription>
+            Review all the articles you've generated or analyzed with Veritas AI.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 p-4 border rounded-lg bg-background">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+              <div className="lg:col-span-2">
+                <Label htmlFor="search-articles">Search Articles</Label>
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        id="search-articles"
+                        placeholder="Search by title, content, topic..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                    />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="filter-type">Filter by Type</Label>
+                <Select value={filterType} onValueChange={(value: 'all' | 'generated' | 'detected') => setFilterType(value)}>
+                    <SelectTrigger id="filter-type">
+                        <SelectValue placeholder="Filter by type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="generated">Generated</SelectItem>
+                        <SelectItem value="detected">Detected</SelectItem>
+                    </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="filter-result">Filter by Result (Detected)</Label>
+                 <Select value={filterResult} onValueChange={(value: 'all' | 'Real' | 'Fake') => setFilterResult(value)} disabled={filterType !== 'detected'}>
+                    <SelectTrigger id="filter-result">
+                        <SelectValue placeholder="Filter by result" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Results</SelectItem>
+                        <SelectItem value="Real">Real</SelectItem>
+                        <SelectItem value="Fake">Fake</SelectItem>
+                    </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {filteredArticles.length === 0 ? (
+            <div className="text-center py-12">
+              <Inbox className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-xl font-semibold">No Articles Found</h3>
+              <p className="text-muted-foreground">
+                {articles.length > 0 ? "Your current filters didn't match any articles." : "You haven't saved any articles yet. Try generating or detecting some!"}
+              </p>
+              {articles.length > 0 && (
+                <Button variant="outline" onClick={() => { setSearchTerm(''); setFilterType('all'); setFilterResult('all');}} className="mt-4">
+                    Clear Filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {filteredArticles.map((article) => (
+                <ArticleCard key={article.id || article.timestamp} article={article} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function Label({ htmlFor, children }: {htmlFor: string, children: React.ReactNode}) {
+    return <label htmlFor={htmlFor} className="block text-sm font-medium text-muted-foreground mb-1">{children}</label>
+}
