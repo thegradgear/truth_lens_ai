@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Logo } from './Logo';
 import { LogIn, UserPlus, Info, Zap, Menu } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/components/ui/sheet'; // Added SheetTitle
 import { usePathname } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 
@@ -21,7 +21,6 @@ export function PublicNavbar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Close sheet when pathname changes (i.e., navigating to a new page)
     if (isSheetOpen) {
       setIsSheetOpen(false);
     }
@@ -45,10 +44,10 @@ export function PublicNavbar() {
   const mobileNavLinks = navLinksConfig.map((link) => (
     <SheetClose asChild key={`${link.href}-mobile`}>
       <Button
-        variant="ghost" // All mobile links are ghost style for vertical layout
+        variant="ghost" 
         asChild
         className="w-full justify-start text-base py-3"
-        onClick={() => setIsSheetOpen(false)} // Ensure closure for anchor links too
+        onClick={() => setIsSheetOpen(false)}
       >
         <Link href={link.href}>
           <link.icon className="mr-2 h-5 w-5" />
@@ -63,12 +62,10 @@ export function PublicNavbar() {
       <div className="container flex h-16 items-center">
         <Logo />
 
-        {/* Desktop Navigation */}
         <nav className="ml-auto hidden items-center space-x-1 md:flex md:space-x-2">
           {desktopNavLinks}
         </nav>
 
-        {/* Mobile Navigation Trigger */}
         <div className="ml-auto md:hidden">
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetTrigger asChild>
@@ -78,6 +75,7 @@ export function PublicNavbar() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-[280px] p-0 pt-6">
+              <SheetTitle className="sr-only">Mobile Navigation Menu</SheetTitle>
               <div className="px-4 mb-6">
                 <Logo />
               </div>
@@ -91,3 +89,4 @@ export function PublicNavbar() {
     </header>
   );
 }
+
