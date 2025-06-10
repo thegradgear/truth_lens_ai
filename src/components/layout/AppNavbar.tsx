@@ -28,7 +28,6 @@ import {
   LogOut,
   UserCircle,
   Menu,
-  // Settings, // Removed Settings import
 } from 'lucide-react';
 
 const navItems = [
@@ -40,12 +39,20 @@ const navItems = [
 
 const userMenuItems = [
     { href: '/profile', label: 'Profile', icon: UserCircle },
-    // { href: '/settings', label: 'Settings', icon: Settings }, // Removed Settings link
 ];
 
 export function AppNavbar() {
   const { user, signOut, loading } = useAuth();
   const pathname = usePathname();
+  const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isSheetOpen) {
+      setIsSheetOpen(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
 
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
@@ -125,15 +132,16 @@ export function AppNavbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
-        <div className="flex items-center mr-4 md:mr-6">
+        <div className="flex items-center mr-auto md:mr-6"> {/* Ensure logo is on the left, mr-auto pushes next items to right on mobile */}
           <Logo />
         </div>
 
-        <nav className="hidden md:flex items-center space-x-1 mr-auto">
+        <nav className="hidden md:flex items-center space-x-1 mx-auto"> {/* Centered nav for desktop */}
           <NavLinks />
         </nav>
 
-        <div className="flex items-center space-x-2 md:space-x-3 ml-auto">
+        {/* Profile, Theme Toggle (Desktop), and Hamburger Menu (Mobile) on the right */}
+        <div className="flex items-center space-x-2 md:space-x-3 ml-auto md:ml-0"> {/* ml-auto pushes this block to the right on desktop, md:ml-0 to keep it right */}
           <div className="hidden md:block">
             <ThemeToggle align="end"/>
           </div>
@@ -173,8 +181,8 @@ export function AppNavbar() {
             </Button>
           )}
 
-          <div className="md:hidden">
-            <Sheet>
+          <div className="md:hidden"> {/* Hamburger menu only on mobile */}
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
                   <Menu className="h-6 w-6" />

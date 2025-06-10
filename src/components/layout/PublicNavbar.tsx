@@ -102,12 +102,13 @@ export function PublicNavbar() {
         <nav className="ml-auto hidden items-center space-x-1 md:flex md:space-x-2">
           {desktopNavLinks}
           <div className="h-6 w-px bg-border mx-2"></div> {/* Vertical Separator */}
-          <ThemeToggle align="end" />
+          <div className="hidden md:block">
+            <ThemeToggle align="end" />
+          </div>
           {desktopAuthLinks}
         </nav>
 
         <div className="ml-auto flex items-center md:hidden">
-           <ThemeToggle align="end" />
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="Open menu" className="ml-2">
