@@ -59,7 +59,7 @@ const generateArticleImageFlow = ai.defineFlow(
           responseModalities: ['TEXT', 'IMAGE'],
            safetySettings: [
             { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }, // Changed from BLOCK_MEDIUM_AND_ABOVE
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
             { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
             { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
           ],
@@ -97,17 +97,34 @@ const generateArticleImageFlow = ai.defineFlow(
           });
         }
         console.error('AI Image Generation Failure:', detailedErrorMsg, 'Details:', JSON.stringify(logDetails, null, 2));
+        // This specific error is for when the AI responds, but without an image.
         throw new Error(detailedErrorMsg);
       }
-    } catch (error) {
-      console.error('Error during AI image generation attempt:', error);
-      // If the error is one we constructed with details, re-throw it to preserve the details.
-      // Otherwise, wrap it in a generic message.
+    } catch (error: any) {
+      // Log the full error object for server-side debugging, especially for API errors.
+      console.error('Full error object during AI image generation attempt:', error);
+
+      // Check if it's the custom error we threw above (AI responded without image)
       if (error instanceof Error && error.message.startsWith('AI image generation did not return a valid media URL.')) {
-        throw new Error(`Failed to generate image data: ${error.message}`);
+        // Re-throw our detailed custom error as is. The message already contains AI's textual response.
+        throw new Error(error.message);
       }
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during AI image data URI generation.';
-      throw new Error(`Failed to generate image data: ${errorMessage}`);
+
+      // Handle other errors, including external API errors (like 500s from Google)
+      let detailedErrorMessage = 'An unexpected error occurred during AI image generation.';
+      if (error instanceof Error) {
+        detailedErrorMessage = error.message; // This often contains info like "500 Internal Server Error"
+      } else if (typeof error === 'string') {
+        detailedErrorMessage = error;
+      }
+      
+      // If the error message indicates a Google API error, frame it specifically.
+      if (detailedErrorMessage.includes('GoogleGenerativeAI Error') || detailedErrorMessage.includes('googleapis.com')) {
+        throw new Error(`AI image generation API request failed: ${detailedErrorMessage}. This may be a temporary issue with the AI service. Please try again later.`);
+      }
+
+      // Fallback for other types of unexpected errors during image data generation phase.
+      throw new Error(`Failed to generate image data due to an unexpected issue: ${detailedErrorMessage}`);
     }
 
     // Upload to Cloudinary
@@ -117,7 +134,8 @@ const generateArticleImageFlow = ai.defineFlow(
     } catch (uploadError) {
         console.error('Error uploading image to Cloudinary from flow:', uploadError);
         const errorMessage = uploadError instanceof Error ? uploadError.message : 'An unknown error occurred during image upload to Cloudinary.';
-        throw new Error(`Failed to process and store image: ${errorMessage}`);
+        // This error is specific to the Cloudinary upload step.
+        throw new Error(`Failed to store generated image: ${errorMessage}`);
     }
   }
 );
