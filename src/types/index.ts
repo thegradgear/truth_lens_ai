@@ -15,6 +15,7 @@ export interface GeneratedArticle {
   category: string;
   tone: string;
   timestamp: string; 
+  imageDataUri?: string; // Optional: For storing the generated image URI
 }
 
 export interface DetectedArticle {
@@ -27,7 +28,7 @@ export interface DetectedArticle {
     confidence: number;
   };
   timestamp: string;
-  detectionMethod?: 'custom' | 'llm'; // Added to track which method was used
+  detectionMethod?: 'custom' | 'llm'; 
 }
 
 export type Article = GeneratedArticle | DetectedArticle;
