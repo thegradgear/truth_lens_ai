@@ -12,12 +12,12 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 // Re-using the same schema structure as the other detection flow for consistency
-export const LlmDetectFakeNewsInputSchema = z.object({
+const LlmDetectFakeNewsInputSchema = z.object({
   articleText: z.string().describe('The text content of the news article to be analyzed.'),
 });
 export type LlmDetectFakeNewsInput = z.infer<typeof LlmDetectFakeNewsInputSchema>;
 
-export const LlmDetectFakeNewsOutputSchema = z.object({
+const LlmDetectFakeNewsOutputSchema = z.object({
   label: z.enum(['Real', 'Fake']).describe('The predicted label for the article (Real or Fake).'),
   confidence: z.number().min(0).max(100).describe('The confidence score of the prediction (0-100).'),
 });
@@ -73,3 +73,4 @@ const llmDetectFakeNewsFlow = ai.defineFlow(
     return output;
   }
 );
+
