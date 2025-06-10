@@ -3,14 +3,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { GeneratedArticle, DetectedArticle, Article } from '@/types';
-import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2 } from 'lucide-react'; // Added Loader2
+import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain } from 'lucide-react';
 import { format } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ArticleCardProps {
   article: Article;
-  onSave?: (article: Article) => Promise<void> | void; // Optional save handler, can be async
+  onSave?: (article: Article) => Promise<void> | void;
   showSaveButton?: boolean;
-  isSaving?: boolean; // To show loading state on save button
+  isSaving?: boolean;
 }
 
 export function ArticleCard({ article, onSave, showSaveButton = false, isSaving = false }: ArticleCardProps) {
@@ -23,10 +24,12 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
         await onSave(article);
       } catch (error) {
         console.error("Error during onSave callback:", error);
-        // Optionally, show a toast or error message here if onSave itself throws
       }
     }
   };
+
+  const resultLabel = articleData.type === 'detected' ? (articleData as DetectedArticle).result.label : '';
+  const confidenceScore = articleData.type === 'detected' ? ((articleData as DetectedArticle).result.confidence || 0).toFixed(1) : '';
 
   return (
     <Card className="shadow-lg w-full flex flex-col">
@@ -50,18 +53,27 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
           <>
             <div className="flex items-center justify-between">
                 <CardTitle className="font-headline text-xl flex items-center">
-                {(articleData as DetectedArticle).result.label === 'Real' ? 
+                {resultLabel === 'Real' ? 
                     <CheckCircle className="mr-2 h-6 w-6 text-green-500" /> :
                     <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
                 }
                 Detection Result
                 </CardTitle>
-                <Badge variant={ (articleData as DetectedArticle).result.label === 'Real' ? 'default' : 'destructive'} className="bg-opacity-80">
-                    {(articleData as DetectedArticle).result.label}
-                </Badge>
+                <TooltipProvider delayDuration={0}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant={ resultLabel === 'Real' ? 'default' : 'destructive'}>
+                        {resultLabel}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>This article is predicted as {resultLabel} by the AI model.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
             </div>
             <CardDescription>
-              Confidence: {((articleData as DetectedArticle).result.confidence || 0).toFixed(1)}%
+              Confidence: {confidenceScore}%
             </CardDescription>
           </>
         )}
@@ -73,20 +85,45 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
           </p>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between items-center border-t pt-4">
-        <div className="text-xs text-muted-foreground flex items-center">
-          <Clock className="mr-1 h-3 w-3" /> 
-          {articleData.timestamp ? format(new Date(articleData.timestamp), "MMM d, yyyy 'at' h:mm a") : 'Processing date...'}
+      <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-t pt-4 gap-2">
+        <div className="flex flex-col xs:flex-row xs:flex-wrap xs:items-center gap-x-3 gap-y-1 text-xs text-muted-foreground w-full">
+          <div className="flex items-center shrink-0">
+            <Clock className="mr-1 h-3 w-3" />
+            {articleData.timestamp ? format(new Date(articleData.timestamp), "MMM d, yyyy, h:mm a") : 'Processing date...'}
+          </div>
+          {articleData.type === 'detected' && articleData.detectionMethod && (
+            <TooltipProvider delayDuration={0}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center mt-1 xs:mt-0 cursor-default">
+                    {articleData.detectionMethod === 'custom' ? (
+                      <Database className="mr-1 h-3 w-3 text-primary/80 shrink-0" />
+                    ) : (
+                      <Brain className="mr-1 h-3 w-3 text-primary/80 shrink-0" />
+                    )}
+                    <span className="truncate">Model: {articleData.detectionMethod === 'custom' ? 'Custom' : 'Genkit AI'}</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>
+                    {articleData.detectionMethod === 'custom'
+                      ? 'Detected using your deployed Render API model.'
+                      : 'Detected using a Genkit-powered Large Language Model.'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
         {showSaveButton && onSave && (
-          <Button onClick={handleSaveClick} size="sm" variant="outline" disabled={isSaving}>
+          <Button onClick={handleSaveClick} size="sm" variant="outline" disabled={isSaving} className="w-full sm:w-auto mt-2 sm:mt-0 shrink-0">
             {isSaving ? (
                 <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
                 </>
             ) : (
                 <>
-                    <Save className="mr-2 h-4 w-4" /> Save to History
+                    <Save className="mr-2 h-4 w-4" /> Save
                 </>
             )}
           </Button>
@@ -95,4 +132,3 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
     </Card>
   );
 }
-

@@ -42,7 +42,7 @@ const predictFakeNews = ai.defineTool(
     }),
   },
   async (input) => {
-    const apiUrl = 'https://fake-news-detection-ml-ofnv.onrender.com/predict';
+    const apiUrl = process.env.NEXT_PUBLIC_CUSTOM_ML_API_URL;
     try {
       const response = await fetch(apiUrl, {
         method: 'POST',
