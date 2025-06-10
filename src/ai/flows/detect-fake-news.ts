@@ -30,7 +30,7 @@ export async function detectFakeNews(input: DetectFakeNewsInput): Promise<Detect
 const predictFakeNews = ai.defineTool(
   {
     name: 'predictFakeNews',
-    description: 'Analyzes the provided news article text and predicts whether it is real or fake using a custom ML model.',
+    description: 'Analyzes the provided news article text and predicts whether it is real or fake using a custom ML model. This tool provides the definitive prediction.',
     inputSchema: z.object({
       articleText: z.string().describe('The text content of the news article to analyze.'),
     }),
@@ -59,8 +59,8 @@ const predictFakeNews = ai.defineTool(
 
       if (data && typeof data.prediction === 'string' && typeof data.confidence === 'number') {
         // Ensure the label is one of the enum values.
-        const label = data.prediction === 'Fake' ? 'Fake' : 'Real';
-        const confidence = data.confidence * 100; // Convert 0-1 scale to 0-100
+        const label = data.prediction.toLowerCase() === 'fake' ? 'Fake' : 'Real';
+        const confidence = data.confidence * 100; 
 
         return {
           label: label,
@@ -72,7 +72,8 @@ const predictFakeNews = ai.defineTool(
       }
     } catch (error: any) {
       console.error('Error calling predictFakeNews tool:', error);
-      throw new Error(`Failed to get prediction from ML model: ${error.message}`);
+      // Don't log full error to user-facing message if it's a network or API structure issue.
+      throw new Error(`Failed to get prediction from ML model. Please check the service or try again later.`);
     }
   }
 );
@@ -82,15 +83,14 @@ const detectFakeNewsPrompt = ai.definePrompt({
   tools: [predictFakeNews],
   input: {schema: DetectFakeNewsInputSchema},
   output: {schema: DetectFakeNewsOutputSchema},
-  prompt: `You are an AI assistant designed to help users determine the credibility of news articles.
-
-The user will provide you with the text of a news article. Your task is to analyze the article and determine whether it is likely to be real or fake.
-
-To do this, use the 'predictFakeNews' tool, which calls a machine learning model to analyze the article and provide a prediction.
+  prompt: `You are an AI assistant whose ONLY job is to use a specialized tool to determine news credibility.
+You will be given the text of a news article.
+You MUST use the 'predictFakeNews' tool to get a prediction for this article.
+The 'predictFakeNews' tool will output a 'label' (which will be either 'Real' or 'Fake') and a 'confidence' score.
+Your final response MUST be a JSON object that DIRECTLY uses the 'label' and 'confidence' values provided by the 'predictFakeNews' tool.
+DO NOT add any of your own analysis, interpretation, or modification to the tool's output. Simply return the tool's exact prediction as your own.
 
 Article Text: {{{articleText}}}
-
-Based on the tool's prediction, return the label (Real or Fake) and the confidence score.
 `,
 });
 
@@ -101,16 +101,10 @@ const detectFakeNewsFlow = ai.defineFlow(
     outputSchema: DetectFakeNewsOutputSchema,
   },
   async (input) => {
-    // The Genkit flow will automatically call the tool if the LLM decides it's necessary based on the prompt.
-    // The `detectFakeNewsPrompt` is constructed in a way that it should always use the tool.
     const {output} = await detectFakeNewsPrompt(input);
-
-    // Genkit handles the tool execution and injects the result back into the LLM to formulate the final output.
-    // So, `output` here should be the direct structured output we want.
     if (!output) {
         throw new Error("The AI failed to produce an output after using the detection tool.");
     }
     return output;
   }
 );
-
