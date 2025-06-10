@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArticleCard } from '@/components/shared/ArticleCard';
 import type { Article, DetectedArticle } from '@/types';
 import { fetchUserArticles } from '@/lib/firebase';
-import { Loader2, Inbox, Search } from 'lucide-react';
+import { Loader2, Inbox, Search, FileText, ScanSearch } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ export default function SavedHistoryPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'generated' | 'detected'>('all');
+  const [filterType, setFilterType] = useState<'generated' | 'detected'>('generated'); // Default to 'generated'
   const [filterResult, setFilterResult] = useState<'all' | 'Real' | 'Fake'>('all');
   const [filterDetectionMethod, setFilterDetectionMethod] = useState<'all' | 'custom' | 'llm'>('all');
 
@@ -51,10 +51,25 @@ export default function SavedHistoryPage() {
     loadArticles();
   }, [loadArticles]);
 
+  const handleFilterTypeChange = (newType: 'generated' | 'detected') => {
+    setFilterType(newType);
+    // Reset detected-specific filters when changing main type
+    setFilterResult('all');
+    setFilterDetectionMethod('all');
+  };
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setFilterType('generated'); // Reset to default type
+    setFilterResult('all');
+    setFilterDetectionMethod('all');
+  }
+
   const filteredArticles = useMemo(() => {
     return articles
       .filter(article => {
-        if (filterType !== 'all' && article.type !== filterType) {
+        // Type filter is now direct
+        if (article.type !== filterType) {
           return false;
         }
         if (article.type === 'detected') {
@@ -117,60 +132,65 @@ export default function SavedHistoryPage() {
         </CardHeader>
         <CardContent>
           <div className="mb-6 p-4 border rounded-lg bg-background space-y-4">
-            <div>
-              <Label htmlFor="search-articles">Search Articles</Label>
-              <div className="relative mt-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                      id="search-articles"
-                      placeholder="Search by title, content, topic..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                  />
-              </div>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="flex space-x-2">
+                    <Button
+                        variant={filterType === 'generated' ? 'default' : 'outline'}
+                        onClick={() => handleFilterTypeChange('generated')}
+                        className="flex-1 sm:flex-none"
+                    >
+                        <FileText className="mr-2 h-4 w-4" /> Generated
+                    </Button>
+                    <Button
+                        variant={filterType === 'detected' ? 'default' : 'outline'}
+                        onClick={() => handleFilterTypeChange('detected')}
+                        className="flex-1 sm:flex-none"
+                    >
+                        <ScanSearch className="mr-2 h-4 w-4" /> Detected
+                    </Button>
+                </div>
+                 <div className="relative flex-grow w-full sm:w-auto">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        id="search-articles"
+                        placeholder="Search articles..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 w-full"
+                    />
+                </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end">
-              <div>
-                <Label htmlFor="filter-type">Filter by Type</Label>
-                <Select value={filterType} onValueChange={(value: 'all' | 'generated' | 'detected') => setFilterType(value)}>
-                    <SelectTrigger id="filter-type" className="mt-1">
-                        <SelectValue placeholder="Filter by type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        <SelectItem value="generated">Generated</SelectItem>
-                        <SelectItem value="detected">Detected</SelectItem>
-                    </SelectContent>
-                </Select>
+
+            {filterType === 'detected' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t mt-4">
+                <div>
+                  <Label htmlFor="filter-result">Filter by Result</Label>
+                   <Select value={filterResult} onValueChange={(value: 'all' | 'Real' | 'Fake') => setFilterResult(value)}>
+                      <SelectTrigger id="filter-result" className="mt-1">
+                          <SelectValue placeholder="Filter by result" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="all">All Results</SelectItem>
+                          <SelectItem value="Real">Real</SelectItem>
+                          <SelectItem value="Fake">Fake</SelectItem>
+                      </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="filter-detection-method">Detection Method</Label>
+                   <Select value={filterDetectionMethod} onValueChange={(value: 'all' | 'custom' | 'llm') => setFilterDetectionMethod(value)}>
+                      <SelectTrigger id="filter-detection-method" className="mt-1">
+                          <SelectValue placeholder="Filter by method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="all">All Methods</SelectItem>
+                          <SelectItem value="custom">Custom Model (Render API)</SelectItem>
+                          <SelectItem value="llm">Genkit AI Model</SelectItem>
+                      </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="filter-result">Filter by Result (Detected)</Label>
-                 <Select value={filterResult} onValueChange={(value: 'all' | 'Real' | 'Fake') => setFilterResult(value)} disabled={filterType !== 'detected'}>
-                    <SelectTrigger id="filter-result" className="mt-1">
-                        <SelectValue placeholder="Filter by result" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Results</SelectItem>
-                        <SelectItem value="Real">Real</SelectItem>
-                        <SelectItem value="Fake">Fake</SelectItem>
-                    </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="filter-detection-method">Detection Method (Detected)</Label>
-                 <Select value={filterDetectionMethod} onValueChange={(value: 'all' | 'custom' | 'llm') => setFilterDetectionMethod(value)} disabled={filterType !== 'detected'}>
-                    <SelectTrigger id="filter-detection-method" className="mt-1">
-                        <SelectValue placeholder="Filter by method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Methods</SelectItem>
-                        <SelectItem value="custom">Custom Model (Render API)</SelectItem>
-                        <SelectItem value="llm">Genkit AI Model</SelectItem>
-                    </SelectContent>
-                </Select>
-              </div>
-            </div>
+            )}
           </div>
 
           {filteredArticles.length === 0 ? (
@@ -181,7 +201,7 @@ export default function SavedHistoryPage() {
                 {articles.length > 0 ? "Your current filters didn't match any articles." : "You haven't saved any articles yet. Try generating or detecting some!"}
               </p>
               {articles.length > 0 && (
-                <Button variant="outline" onClick={() => { setSearchTerm(''); setFilterType('all'); setFilterResult('all'); setFilterDetectionMethod('all');}} className="mt-4">
+                <Button variant="outline" onClick={clearAllFilters} className="mt-4">
                     Clear Filters
                 </Button>
               )}
