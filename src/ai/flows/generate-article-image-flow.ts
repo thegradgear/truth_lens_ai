@@ -52,12 +52,12 @@ const generateArticleImageFlow = ai.defineFlow(
 
     let imageDataUri: string | undefined;
     try {
-      const {media} = await ai.generate({
+      const genResponse = await ai.generate({
         model: 'googleai/gemini-2.0-flash-exp',
         prompt: imagePromptText,
         config: {
           responseModalities: ['TEXT', 'IMAGE'],
-           safetySettings: [ // Added safety settings to be less restrictive for creative content
+           safetySettings: [
             { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
             { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
@@ -66,13 +66,46 @@ const generateArticleImageFlow = ai.defineFlow(
         },
       });
 
-      if (media && media.url) {
-        imageDataUri = media.url;
+      if (genResponse.media && genResponse.media.url) {
+        imageDataUri = genResponse.media.url;
       } else {
-        throw new Error('AI image generation did not return a valid media URL.');
+        let detailedErrorMsg = 'AI image generation did not return a valid media URL.';
+        let logDetails: any = {
+            promptUsed: imagePromptText,
+            responseText: genResponse.text,
+            candidates: [],
+        };
+
+        if (genResponse.text) {
+          detailedErrorMsg += ` Model text response: "${genResponse.text}".`;
+        }
+        if (genResponse.candidates && genResponse.candidates.length > 0) {
+          genResponse.candidates.forEach(candidate => {
+            let candInfo: any = { index: candidate.index };
+            if (candidate.finishReason) {
+              candInfo.finishReason = candidate.finishReason;
+              detailedErrorMsg += ` Candidate finish reason: ${candidate.finishReason}.`;
+            }
+            if (candidate.finishMessage) {
+              candInfo.finishMessage = candidate.finishMessage;
+              detailedErrorMsg += ` Finish message: "${candidate.finishMessage}".`;
+            }
+            if (candidate.finishReason === 'SAFETY' && !candidate.media?.url) {
+                detailedErrorMsg += ' Image generation may have been blocked due to safety filters.';
+            }
+            logDetails.candidates.push(candInfo);
+          });
+        }
+        console.error('AI Image Generation Failure:', detailedErrorMsg, 'Details:', JSON.stringify(logDetails, null, 2));
+        throw new Error(detailedErrorMsg);
       }
     } catch (error) {
-      console.error('Error generating AI image data URI:', error);
+      console.error('Error during AI image generation attempt:', error);
+      // If the error is one we constructed with details, re-throw it to preserve the details.
+      // Otherwise, wrap it in a generic message.
+      if (error instanceof Error && error.message.startsWith('AI image generation did not return a valid media URL.')) {
+        throw new Error(`Failed to generate image data: ${error.message}`);
+      }
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during AI image data URI generation.';
       throw new Error(`Failed to generate image data: ${errorMessage}`);
     }
