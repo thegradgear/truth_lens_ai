@@ -55,16 +55,17 @@ export default function GeneratorPage() {
   });
 
   const handleImageGenerationTrigger = async (userProvidedPrompt?: string) => {
-    if (!generatedArticle) return;
+    if (!generatedArticle) return; // Should not happen if called after article generation
     setIsGeneratingImage(true);
-    setGeneratedImageUrl(null); 
+    // Do not clear generatedImageUrl here if we want to show the old one while new one loads for regeneration
+    // setGeneratedImageUrl(null); 
     setImageGenerationMessage(userProvidedPrompt ? "Regenerating image with your prompt..." : "Generating initial image...");
 
     try {
       const input: GenerateArticleImageInput = {
         topic: generatedArticle.topic,
         category: generatedArticle.category,
-        articleSnippet: generatedArticle.content.substring(0, 150), // Provide a snippet
+        articleSnippet: generatedArticle.content.substring(0, 200), // Provide a snippet
         customPrompt: userProvidedPrompt?.trim() || undefined,
       };
       const result: GenerateArticleImageOutput = await generateArticleImage(input);
@@ -85,6 +86,7 @@ export default function GeneratorPage() {
         description: error.message || "Could not generate or store the image. Please try again.",
         variant: "destructive",
       });
+      // Keep old image if regeneration fails? Or clear it? For now, it keeps the old one.
     } finally {
       setIsGeneratingImage(false);
       setImageGenerationMessage(null);
@@ -94,8 +96,10 @@ export default function GeneratorPage() {
   const onSubmitArticle: SubmitHandler<GeneratorFormValues> = async (data) => {
     setIsLoadingArticle(true);
     setGeneratedArticle(null);
-    setGeneratedImageUrl(null);
+    setGeneratedImageUrl(null); // Clear previous image
     setCustomImagePrompt(""); 
+    setImageGenerationMessage(null);
+
     try {
       const input: GenerateFakeNewsArticleInput = {
         topic: data.topic,
@@ -114,22 +118,26 @@ export default function GeneratorPage() {
           tone: data.tone,
           timestamp: new Date().toISOString(),
           userId: user?.uid,
+          // imageUrl will be added by handleImageGenerationTrigger
         };
-        setGeneratedArticle(newArticle);
+        setGeneratedArticle(newArticle); // Set article first so handleImageGenerationTrigger can use its details
         toast({
-          title: "Article Generated!",
-          description: "The AI has crafted an article. Generating header image next...",
+          title: "Article Text Generated!",
+          description: "Now automatically generating a header image...",
         });
+        
         // Automatically trigger initial image generation
+        // Pass newArticle directly if handleImageGenerationTrigger needs it before full state update
         await handleImageGenerationTrigger(); 
+        
       } else {
-        throw new Error("AI did not return an article.");
+        throw new Error("AI did not return an article text.");
       }
     } catch (error: any) {
-      console.error("Error generating article:", error);
+      console.error("Error generating article text:", error);
       toast({
         title: "Article Generation Failed",
-        description: error.message || "Could not generate the article. Please try again.",
+        description: error.message || "Could not generate the article text. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -146,7 +154,13 @@ export default function GeneratorPage() {
 
     setIsSaving(true);
     try {
-      const { id, ...dataToSave } = generatedArticle; 
+      // Ensure the generatedArticle includes the latest imageUrl
+      const articleToSave = { ...generatedArticle };
+      if (generatedImageUrl) {
+        articleToSave.imageUrl = generatedImageUrl;
+      }
+      
+      const { id, ...dataToSave } = articleToSave; 
       const savedData = await saveArticle(user.uid, dataToSave); 
       toast({ title: "Article Saved!", description: "The article (with image, if generated) has been saved." });
       setGeneratedArticle(prev => prev ? {...prev, id: savedData.id} : null); 
@@ -232,11 +246,11 @@ export default function GeneratorPage() {
               <Button type="submit" className="w-full md:w-auto" disabled={isLoadingArticle || isSaving || isGeneratingImage}>
                 {isLoadingArticle ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating Article Text...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating Article Content...
                   </>
                 ) : (
                   <>
-                    <Wand2 className="mr-2 h-4 w-4" /> Generate Article Text
+                    <Wand2 className="mr-2 h-4 w-4" /> Generate Article & Image
                   </>
                 )}
               </Button>
@@ -245,15 +259,16 @@ export default function GeneratorPage() {
         </CardContent>
       </Card>
 
-      {(isLoadingArticle || imageGenerationMessage) && !generatedArticle && (
+      {(isLoadingArticle || (isGeneratingImage && !generatedImageUrl && imageGenerationMessage)) && !generatedArticle && (
+        // This card shows when article text is loading OR initial image is loading before text is set
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="font-headline flex items-center">
                 <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary"/> 
-                {isLoadingArticle ? "Generating Your Article Text..." : imageGenerationMessage}
+                {isLoadingArticle ? "Generating Your Article Content..." : (imageGenerationMessage || "Processing...")}
             </CardTitle>
             <CardDescription>
-                {isLoadingArticle ? "The AI is working its magic. Please wait a moment." : "Processing image..."}
+                {isLoadingArticle ? "The AI is working its magic. Please wait a moment." : "This might take a few seconds."}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center items-center min-h-[200px]">
@@ -283,7 +298,7 @@ export default function GeneratorPage() {
             </Card>
           )}
 
-          {isGeneratingImage && !generatedImageUrl && (
+          {isGeneratingImage && !generatedImageUrl && ( // Show this if image is generating (initial or regen) and no image is yet visible
             <Card className="shadow-md mt-6">
               <CardHeader>
                 <CardTitle className="font-headline flex items-center">
@@ -299,10 +314,11 @@ export default function GeneratorPage() {
           )}
 
           <ArticleCard 
-            article={generatedArticle}
-            showSaveButton={false} 
+            article={generatedArticle} // This will now include imageUrl if generated
+            showSaveButton={false} // Save button is handled separately below
           />
           
+          {/* Actions Card: Regeneration and Saving */}
           <Card className="shadow-md mt-6">
             <CardHeader>
               <CardTitle className="font-headline text-xl">Image & Article Actions</CardTitle>
@@ -331,7 +347,7 @@ export default function GeneratorPage() {
                     </>
                   ) : (
                     <>
-                      <RefreshCcw className="mr-2 h-4 w-4" /> {generatedImageUrl ? "Regenerate" : "Generate"} Image
+                      <RefreshCcw className="mr-2 h-4 w-4" /> Regenerate Image
                     </>
                   )}
                 </Button>
@@ -342,13 +358,13 @@ export default function GeneratorPage() {
                        </>
                   ) : (
                        <>
-                          <Save className="mr-2 h-4 w-4" /> {generatedArticle.id ? "Article Saved" : "Save Article"}
+                          <Save className="mr-2 h-4 w-4" /> {generatedArticle.id ? "Article Saved" : "Save Article & Image"}
                        </>
                   )}
                 </Button>
               </div>
             </CardContent>
-             {isGeneratingImage && (
+             {isGeneratingImage && ( // Footer message during any image generation
                 <CardFooter className="flex justify-center items-center text-muted-foreground py-3">
                   <p>{imageGenerationMessage || "Creating and storing image, please wait..."}</p>
                 </CardFooter>
@@ -359,3 +375,5 @@ export default function GeneratorPage() {
     </div>
   );
 }
+
+    
