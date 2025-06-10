@@ -8,7 +8,6 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
@@ -18,9 +17,9 @@ import { ArticleCard } from '@/components/shared/ArticleCard';
 import type { GeneratedArticle } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveArticle } from '@/lib/firebase';
-import { Loader2, Wand2, Save, ImageIcon, AlertTriangle, RefreshCcw } from 'lucide-react';
-import Image from 'next/image';
-import { Label } from '@/components/ui/label';
+import { Loader2, Wand2, Save, AlertTriangle } from 'lucide-react';
+// Image component from 'next/image' is not directly used here anymore, but ArticleCard uses it.
+// Label component removed as it's not directly used.
 
 const generatorFormSchema = z.object({
   topic: z.string().min(5, { message: "Topic must be at least 5 characters." }).max(100, { message: "Topic must be at most 100 characters."}),
@@ -37,13 +36,8 @@ export default function GeneratorPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [generatedArticle, setGeneratedArticle] = useState<GeneratedArticle | null>(null);
-  const [isLoadingArticle, setIsLoadingArticle] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Consolidated loading state
   const [isSaving, setIsSaving] = useState(false);
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [customImagePrompt, setCustomImagePrompt] = useState("");
-  const [imageGenerationMessage, setImageGenerationMessage] = useState<string | null>(null);
-
 
   const form = useForm<GeneratorFormValues>({
     resolver: zodResolver(generatorFormSchema),
@@ -54,94 +48,91 @@ export default function GeneratorPage() {
     },
   });
 
-  const handleImageGenerationTrigger = async (userProvidedPrompt?: string) => {
-    if (!generatedArticle) return; // Should not happen if called after article generation
-    setIsGeneratingImage(true);
-    // Do not clear generatedImageUrl here if we want to show the old one while new one loads for regeneration
-    // setGeneratedImageUrl(null); 
-    setImageGenerationMessage(userProvidedPrompt ? "Regenerating image with your prompt..." : "Generating initial image...");
-
-    try {
-      const input: GenerateArticleImageInput = {
-        topic: generatedArticle.topic,
-        category: generatedArticle.category,
-        articleSnippet: generatedArticle.content.substring(0, 200), // Provide a snippet
-        customPrompt: userProvidedPrompt?.trim() || undefined,
-      };
-      const result: GenerateArticleImageOutput = await generateArticleImage(input);
-      if (result.imageUrl) {
-        setGeneratedImageUrl(result.imageUrl);
-        setGeneratedArticle(prev => prev ? { ...prev, imageUrl: result.imageUrl } : null);
-        toast({
-          title: "Image Ready!",
-          description: userProvidedPrompt ? "Image regenerated and stored." : "AI-powered header image created and stored.",
-        });
-      } else {
-        throw new Error("AI did not return an image URL after processing.");
-      }
-    } catch (error: any) {
-      console.error("Error generating or storing image:", error);
-      toast({
-        title: "Image Generation Failed",
-        description: error.message || "Could not generate or store the image. Please try again.",
-        variant: "destructive",
-      });
-      // Keep old image if regeneration fails? Or clear it? For now, it keeps the old one.
-    } finally {
-      setIsGeneratingImage(false);
-      setImageGenerationMessage(null);
-    }
-  };
-
   const onSubmitArticle: SubmitHandler<GeneratorFormValues> = async (data) => {
-    setIsLoadingArticle(true);
+    setIsLoading(true);
     setGeneratedArticle(null);
-    setGeneratedImageUrl(null); // Clear previous image
-    setCustomImagePrompt(""); 
-    setImageGenerationMessage(null);
 
     try {
-      const input: GenerateFakeNewsArticleInput = {
+      // 1. Generate Article Text
+      const articleInput: GenerateFakeNewsArticleInput = {
         topic: data.topic,
         category: data.category,
         tone: data.tone,
       };
-      const result: GenerateFakeNewsArticleOutput = await generateFakeNewsArticle(input);
-      
-      if (result.article) {
-        const newArticle: GeneratedArticle = {
-          type: 'generated',
-          title: `${data.category}: ${data.topic.substring(0,30)}... (${data.tone})`, 
-          content: result.article,
-          topic: data.topic,
-          category: data.category,
-          tone: data.tone,
-          timestamp: new Date().toISOString(),
-          userId: user?.uid,
-          // imageUrl will be added by handleImageGenerationTrigger
-        };
-        setGeneratedArticle(newArticle); // Set article first so handleImageGenerationTrigger can use its details
-        toast({
-          title: "Article Text Generated!",
-          description: "Now automatically generating a header image...",
-        });
-        
-        // Automatically trigger initial image generation
-        // Pass newArticle directly if handleImageGenerationTrigger needs it before full state update
-        await handleImageGenerationTrigger(); 
-        
-      } else {
+      const articleResult: GenerateFakeNewsArticleOutput = await generateFakeNewsArticle(articleInput);
+
+      if (!articleResult.article) {
         throw new Error("AI did not return an article text.");
       }
-    } catch (error: any) {
-      console.error("Error generating article text:", error);
+
+      const tempArticleDetails = {
+        topic: data.topic,
+        category: data.category,
+        tone: data.tone,
+        content: articleResult.article,
+      };
+
+      toast({
+        title: "Article Text Generated!",
+        description: "Now automatically creating a header image...",
+      });
+
+      // 2. Generate Image
+      let finalImageUrl: string | undefined = undefined;
+      try {
+        const imageGenInput: GenerateArticleImageInput = {
+          topic: tempArticleDetails.topic,
+          category: tempArticleDetails.category,
+          articleSnippet: tempArticleDetails.content.substring(0, 200),
+        };
+        const imageResult: GenerateArticleImageOutput = await generateArticleImage(imageGenInput);
+        if (imageResult.imageUrl) {
+          finalImageUrl = imageResult.imageUrl;
+          toast({
+            title: "Header Image Created!",
+            description: "The AI-powered header image has been generated.",
+          });
+        } else {
+          // Image generation succeeded in the flow, but no URL was returned (e.g. safety block)
+           toast({
+            title: "Image Generation Skipped by AI",
+            description: "The AI model did not return an image for this content. Displaying article text only.",
+            variant: "default", 
+          });
+        }
+      } catch (imageError: any) {
+        console.error("Error during automatic image generation:", imageError);
+        toast({
+          title: "Image Generation Failed",
+          description: imageError.message || "Could not generate the header image.",
+          variant: "destructive",
+        });
+        // Proceed with article text only
+      }
+      
+      // 3. Set final state for display
+      const newArticle: GeneratedArticle = {
+        type: 'generated',
+        title: `${data.category}: ${data.topic.substring(0,30)}... (${data.tone})`,
+        content: tempArticleDetails.content,
+        topic: data.topic,
+        category: data.category,
+        tone: data.tone,
+        timestamp: new Date().toISOString(),
+        userId: user?.uid,
+        imageUrl: finalImageUrl,
+      };
+      setGeneratedArticle(newArticle);
+
+    } catch (error: any) { // Catches errors from article text generation
+      console.error("Error generating article content:", error);
       toast({
         title: "Article Generation Failed",
-        description: error.message || "Could not generate the article text. Please try again.",
+        description: error.message || "Could not generate the article. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsLoadingArticle(false);
+      setIsLoading(false);
     }
   };
 
@@ -154,16 +145,11 @@ export default function GeneratorPage() {
 
     setIsSaving(true);
     try {
-      // Ensure the generatedArticle includes the latest imageUrl
-      const articleToSave = { ...generatedArticle };
-      if (generatedImageUrl) {
-        articleToSave.imageUrl = generatedImageUrl;
-      }
-      
-      const { id, ...dataToSave } = articleToSave; 
-      const savedData = await saveArticle(user.uid, dataToSave); 
-      toast({ title: "Article Saved!", description: "The article (with image, if generated) has been saved." });
-      setGeneratedArticle(prev => prev ? {...prev, id: savedData.id} : null); 
+      const articleToSave = { ...generatedArticle }; 
+      const { id, ...dataToSave } = articleToSave;
+      const savedData = await saveArticle(user.uid, dataToSave);
+      toast({ title: "Article Saved!", description: "The article has been saved to your history." });
+      setGeneratedArticle(prev => prev ? {...prev, id: savedData.id} : null);
     } catch (error: any) {
       toast({ title: "Save Failed", description: error.message || "Could not save the article.", variant: "destructive" });
     } finally {
@@ -171,14 +157,13 @@ export default function GeneratorPage() {
     }
   };
 
-
   return (
     <div className="space-y-8">
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl font-headline flex items-center"><Wand2 className="mr-3 h-7 w-7 text-primary"/>Fake News Generator</CardTitle>
           <CardDescription>
-            Craft an AI-generated news article. An image will be automatically generated. You can then regenerate it with custom prompts.
+            Craft an AI-generated news article. A header image will be automatically generated and displayed with the article.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -191,7 +176,7 @@ export default function GeneratorPage() {
                   <FormItem>
                     <FormLabel>Topic</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Discovery of a new planet, A celebrity's unusual pet" {...field} disabled={isLoadingArticle || isSaving || isGeneratingImage} />
+                      <Input placeholder="e.g., Discovery of a new planet, A celebrity's unusual pet" {...field} disabled={isLoading || isSaving} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -204,7 +189,7 @@ export default function GeneratorPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingArticle || isSaving || isGeneratingImage}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || isSaving}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a category" />
@@ -226,7 +211,7 @@ export default function GeneratorPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tone</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingArticle || isSaving || isGeneratingImage}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading || isSaving}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a tone" />
@@ -243,10 +228,10 @@ export default function GeneratorPage() {
                   )}
                 />
               </div>
-              <Button type="submit" className="w-full md:w-auto" disabled={isLoadingArticle || isSaving || isGeneratingImage}>
-                {isLoadingArticle ? (
+              <Button type="submit" className="w-full md:w-auto" disabled={isLoading || isSaving}>
+                {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating Article Content...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating Article & Image...
                   </>
                 ) : (
                   <>
@@ -259,121 +244,72 @@ export default function GeneratorPage() {
         </CardContent>
       </Card>
 
-      {(isLoadingArticle || (isGeneratingImage && !generatedImageUrl && imageGenerationMessage)) && !generatedArticle && (
-        // This card shows when article text is loading OR initial image is loading before text is set
+      {isLoading && !generatedArticle && (
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="font-headline flex items-center">
-                <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary"/> 
-                {isLoadingArticle ? "Generating Your Article Content..." : (imageGenerationMessage || "Processing...")}
+                <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary"/>
+                Generating Your Article & Image...
             </CardTitle>
             <CardDescription>
-                {isLoadingArticle ? "The AI is working its magic. Please wait a moment." : "This might take a few seconds."}
+                The AI is working. This may take a few moments.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center items-center min-h-[200px]">
             <div className="space-y-2 text-center">
-              <p className="text-muted-foreground">This might take a few seconds.</p>
+              <p className="text-muted-foreground">Please wait patiently.</p>
             </div>
           </CardContent>
         </Card>
       )}
       
-      {generatedArticle && !isLoadingArticle && (
+      {generatedArticle && !isLoading && (
         <>
-          {generatedImageUrl && (
-            <Card className="shadow-md mt-6">
-              <CardHeader>
-                <CardTitle className="font-headline text-xl">Generated Header Image</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="relative aspect-video w-full max-w-2xl mx-auto rounded-md overflow-hidden border shadow">
-                  <Image src={generatedImageUrl} alt="AI Generated Article Header" layout="fill" objectFit="cover" />
-                </div>
-                 <div className="flex items-start p-3 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-700/50 dark:text-yellow-300 text-xs mt-3">
-                    <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
-                    <span>This image is AI-generated and stored on Cloudinary. Review carefully before use.</span>
-                 </div>
-              </CardContent>
-            </Card>
+          {generatedArticle.imageUrl && (
+              <div className="flex items-start p-3 my-4 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-700/50 dark:text-yellow-300 text-xs">
+                <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                <span>The header image displayed with the article is AI-generated and stored on Cloudinary. Review carefully before any use.</span>
+              </div>
+          )}
+          {!generatedArticle.imageUrl && (
+             <div className="flex items-start p-3 my-4 rounded-md bg-blue-50 border border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700/50 dark:text-blue-300 text-xs">
+                <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                <span>Article text is ready. An image could not be generated for this content.</span>
+              </div>
           )}
 
-          {isGeneratingImage && !generatedImageUrl && ( // Show this if image is generating (initial or regen) and no image is yet visible
-            <Card className="shadow-md mt-6">
-              <CardHeader>
-                <CardTitle className="font-headline flex items-center">
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary"/>
-                  {imageGenerationMessage || "Processing Image..."}
-                </CardTitle>
-                <CardDescription>Please wait while the AI creates your image.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-center items-center min-h-[150px]">
-                <p className="text-muted-foreground">This may take a few moments.</p>
-              </CardContent>
-            </Card>
-          )}
-
-          <ArticleCard 
-            article={generatedArticle} // This will now include imageUrl if generated
+          <ArticleCard
+            article={generatedArticle}
             showSaveButton={false} // Save button is handled separately below
           />
           
-          {/* Actions Card: Regeneration and Saving */}
           <Card className="shadow-md mt-6">
             <CardHeader>
-              <CardTitle className="font-headline text-xl">Image & Article Actions</CardTitle>
+              <CardTitle className="font-headline text-xl">Save Your Article</CardTitle>
+              <CardDescription>
+                {generatedArticle.id ? "This article has been saved to your history." : "Save the generated article and its image to your history."}
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="customImagePrompt" className="text-base">Custom Image Prompt (Optional for Regeneration)</Label>
-                <Textarea
-                  id="customImagePrompt"
-                  placeholder="e.g., A futuristic cityscape at sunset, a close-up of a curious cat"
-                  value={customImagePrompt}
-                  onChange={(e) => setCustomImagePrompt(e.target.value)}
-                  className="mt-1"
-                  rows={2}
-                  disabled={isGeneratingImage || isLoadingArticle || isSaving}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  If you provide a prompt, the AI will use it for regeneration. Otherwise, it will use article details.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button onClick={() => handleImageGenerationTrigger(customImagePrompt)} disabled={isGeneratingImage || isLoadingArticle || isSaving} className="w-full sm:w-auto flex-1">
-                  {isGeneratingImage ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCcw className="mr-2 h-4 w-4" /> Regenerate Image
-                    </>
-                  )}
-                </Button>
-                <Button onClick={handleSaveArticle} disabled={isSaving || isLoadingArticle || isGeneratingImage || !!generatedArticle.id} className="w-full sm:w-auto flex-1">
-                  {isSaving ? (
-                       <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-                       </>
-                  ) : (
-                       <>
-                          <Save className="mr-2 h-4 w-4" /> {generatedArticle.id ? "Article Saved" : "Save Article & Image"}
-                       </>
-                  )}
-                </Button>
-              </div>
+            <CardContent>
+              <Button 
+                onClick={handleSaveArticle} 
+                disabled={isSaving || !!generatedArticle.id} 
+                className="w-full sm:w-auto"
+              >
+                {isSaving ? (
+                   <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                   </>
+                ) : (
+                   <>
+                      <Save className="mr-2 h-4 w-4" /> {generatedArticle.id ? "Article Saved" : "Save Article & Image"}
+                   </>
+                )}
+              </Button>
             </CardContent>
-             {isGeneratingImage && ( // Footer message during any image generation
-                <CardFooter className="flex justify-center items-center text-muted-foreground py-3">
-                  <p>{imageGenerationMessage || "Creating and storing image, please wait..."}</p>
-                </CardFooter>
-              )}
           </Card>
         </>
       )}
     </div>
   );
 }
-
-    
