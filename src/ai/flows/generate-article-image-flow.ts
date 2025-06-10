@@ -43,11 +43,13 @@ const generateArticleImageFlow = ai.defineFlow(
     if (input.customPrompt && input.customPrompt.trim() !== '') {
       imagePromptText = input.customPrompt;
     } else {
-      imagePromptText = `Generate a visually appealing header image suitable for a news article about "${input.topic}" in the "${input.category}" category.`;
+      // Refined default prompt to strongly discourage text and focus on the topic
+      imagePromptText = `Create a high-quality, visually compelling image that directly represents the core essence of the topic: "${input.topic}".`;
+      imagePromptText += ` This image is intended as a header for a news article in the "${input.category}" category.`;
       if (input.articleSnippet) {
-        imagePromptText += ` The article starts with: "${input.articleSnippet.substring(0, 200)}...".`;
+        imagePromptText += ` For thematic context, the article begins with: "${input.articleSnippet.substring(0, 150)}...".`;
       }
-      imagePromptText += ` The image should be in a style typically seen with online news. Avoid text in the image. Focus on photorealistic or illustrative styles appropriate for news.`;
+      imagePromptText += ` CRITICAL: The image MUST NOT contain any text, words, letters, numbers, captions, headlines, logos, or watermarks. Focus entirely on a purely visual depiction of the topic: "${input.topic}". Aim for a photorealistic or clear illustrative style suitable for news.`;
     }
 
     let imageDataUri: string | undefined;
