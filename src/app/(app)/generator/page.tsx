@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { saveArticle } from '@/lib/firebase';
 import { Loader2, Wand2, Save, ImageIcon, AlertTriangle, RefreshCcw } from 'lucide-react';
 import Image from 'next/image';
+import { Label } from '@/components/ui/label';
 
 const generatorFormSchema = z.object({
   topic: z.string().min(5, { message: "Topic must be at least 5 characters." }).max(100, { message: "Topic must be at most 100 characters."}),
@@ -149,7 +150,7 @@ export default function GeneratorPage() {
       const savedData = await saveArticle(user.uid, dataToSave); 
       toast({ title: "Article Saved!", description: "The article (with image, if generated) has been saved." });
       setGeneratedArticle(prev => prev ? {...prev, id: savedData.id} : null); 
-    } catch (error: any)_ {
+    } catch (error: any) {
       toast({ title: "Save Failed", description: error.message || "Could not save the article.", variant: "destructive" });
     } finally {
       setIsSaving(false);
