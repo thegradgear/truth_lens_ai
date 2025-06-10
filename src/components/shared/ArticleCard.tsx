@@ -1,11 +1,23 @@
 
+"use client";
+
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { GeneratedArticle, DetectedArticle, Article } from '@/types';
-import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain } from 'lucide-react';
+import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from 'react';
 
 interface ArticleCardProps {
   article: Article;
@@ -14,7 +26,10 @@ interface ArticleCardProps {
   isSaving?: boolean;
 }
 
+const CONTENT_CHAR_LIMIT = 300;
+
 export function ArticleCard({ article, onSave, showSaveButton = false, isSaving = false }: ArticleCardProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const isGenerated = article.type === 'generated';
   const articleData = article as GeneratedArticle | DetectedArticle;
 
@@ -28,8 +43,14 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
     }
   };
 
+  const fullText = isGenerated ? (articleData as GeneratedArticle).content : (articleData as DetectedArticle).text;
+  const shouldTruncate = fullText.length > CONTENT_CHAR_LIMIT;
+  const displayText = shouldTruncate ? fullText.substring(0, CONTENT_CHAR_LIMIT) + "..." : fullText;
+
   const resultLabel = articleData.type === 'detected' ? (articleData as DetectedArticle).result.label : '';
   const confidenceScore = articleData.type === 'detected' ? ((articleData as DetectedArticle).result.confidence || 0).toFixed(1) : '';
+
+  const modalTitle = isGenerated ? (articleData as GeneratedArticle).title : 'Full Article Text';
 
   return (
     <Card className="shadow-lg w-full flex flex-col">
@@ -62,7 +83,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
                 <TooltipProvider delayDuration={0}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Badge variant={ resultLabel === 'Real' ? 'default' : 'destructive'}>
+                       <Badge variant={ resultLabel === 'Real' ? 'default' : 'destructive'}>
                         {resultLabel}
                       </Badge>
                     </TooltipTrigger>
@@ -79,10 +100,42 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
         )}
       </CardHeader>
       <CardContent className="flex-grow">
-        <div className="prose prose-sm max-w-none dark:prose-invert text-foreground overflow-auto max-h-96 p-2 rounded bg-muted/30">
+        <div className="prose prose-sm max-w-none dark:prose-invert text-foreground">
           <p className="whitespace-pre-wrap">
-            {isGenerated ? (articleData as GeneratedArticle).content : (articleData as DetectedArticle).text}
+            {displayText}
           </p>
+          {shouldTruncate && (
+             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+              <DialogTrigger asChild>
+                <Button variant="link" size="sm" className="p-0 h-auto mt-2 text-primary hover:underline">
+                  <Eye className="mr-1 h-4 w-4"/>Read More
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl w-[90vw] max-h-[85vh] flex flex-col">
+                <DialogHeader>
+                  <DialogTitle className="truncate pr-8">{modalTitle}</DialogTitle>
+                  {isGenerated && (
+                    <DialogDescription>
+                      Topic: {(articleData as GeneratedArticle).topic} | Category: {(articleData as GeneratedArticle).category} | Tone: {(articleData as GeneratedArticle).tone}
+                    </DialogDescription>
+                  )}
+                   {!isGenerated && (
+                     <DialogDescription>
+                        Detected Article Analysis
+                    </DialogDescription>
+                  )}
+                </DialogHeader>
+                <ScrollArea className="flex-grow rounded-md border p-4 my-4">
+                  <p className="whitespace-pre-wrap text-sm">
+                    {fullText}
+                  </p>
+                </ScrollArea>
+                <div className="flex justify-end">
+                    <Button variant="outline" onClick={() => setIsModalOpen(false)}>Close</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-t pt-4 gap-2">
