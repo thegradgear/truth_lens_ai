@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -18,7 +19,7 @@ export type DetectFakeNewsInput = z.infer<typeof DetectFakeNewsInputSchema>;
 
 const DetectFakeNewsOutputSchema = z.object({
   label: z.enum(['Real', 'Fake']).describe('The predicted label for the article (Real or Fake).'),
-  confidence: z.number().describe('The confidence score of the prediction (0-100).'),
+  confidence: z.number().min(0).max(100).describe('The confidence score of the prediction (0-100).'),
 });
 export type DetectFakeNewsOutput = z.infer<typeof DetectFakeNewsOutputSchema>;
 
@@ -29,43 +30,50 @@ export async function detectFakeNews(input: DetectFakeNewsInput): Promise<Detect
 const predictFakeNews = ai.defineTool(
   {
     name: 'predictFakeNews',
-    description: 'Analyzes the provided news article text and predicts whether it is real or fake.',
+    description: 'Analyzes the provided news article text and predicts whether it is real or fake using a custom ML model.',
     inputSchema: z.object({
       articleText: z.string().describe('The text content of the news article to analyze.'),
     }),
     outputSchema: z.object({
       label: z.enum(['Real', 'Fake']).describe('The predicted label for the article (Real or Fake).'),
-      confidence: z.number().describe('The confidence score of the prediction (0-100).'),
+      confidence: z.number().min(0).max(100).describe('The confidence score of the prediction (0-100).'),
     }),
   },
-  async input => {
-    // TODO: Implement the actual call to the deployed ML model here.
-    // This is a placeholder implementation.
-    console.log('Calling ML model with input:', input.articleText);
-    // Replace with actual API call to the deployed ML model.
-    // Example:
-    // const response = await fetch('YOUR_ML_API_ENDPOINT', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({ text: input.articleText }),
-    // });
-    // const data = await response.json();
-    // return {
-    //   label: data.label,
-    //   confidence: data.confidence,
-    // };
+  async (input) => {
+    const apiUrl = 'https://fake-news-detection-ml-ofnv.onrender.com/predict';
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: input.articleText }),
+      });
 
-    // Simulate a response for now.
-    const randomValue = Math.random();
-    const label = randomValue > 0.5 ? 'Real' : 'Fake';
-    const confidence = Math.floor(Math.random() * 100);
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`ML API request failed with status ${response.status}: ${errorBody}`);
+      }
 
-    return {
-      label: label,
-      confidence: confidence,
-    };
+      const data = await response.json();
+
+      if (data && typeof data.prediction === 'string' && typeof data.confidence === 'number') {
+        // Ensure the label is one of the enum values.
+        const label = data.prediction === 'Fake' ? 'Fake' : 'Real';
+        const confidence = data.confidence * 100; // Convert 0-1 scale to 0-100
+
+        return {
+          label: label,
+          confidence: parseFloat(confidence.toFixed(1)), // Ensure one decimal place
+        };
+      } else {
+        console.error('Unexpected response format from ML API:', data);
+        throw new Error('Unexpected response format from ML API.');
+      }
+    } catch (error: any) {
+      console.error('Error calling predictFakeNews tool:', error);
+      throw new Error(`Failed to get prediction from ML model: ${error.message}`);
+    }
   }
 );
 
@@ -92,8 +100,17 @@ const detectFakeNewsFlow = ai.defineFlow(
     inputSchema: DetectFakeNewsInputSchema,
     outputSchema: DetectFakeNewsOutputSchema,
   },
-  async input => {
+  async (input) => {
+    // The Genkit flow will automatically call the tool if the LLM decides it's necessary based on the prompt.
+    // The `detectFakeNewsPrompt` is constructed in a way that it should always use the tool.
     const {output} = await detectFakeNewsPrompt(input);
-    return output!;
+
+    // Genkit handles the tool execution and injects the result back into the LLM to formulate the final output.
+    // So, `output` here should be the direct structured output we want.
+    if (!output) {
+        throw new Error("The AI failed to produce an output after using the detection tool.");
+    }
+    return output;
   }
 );
+
