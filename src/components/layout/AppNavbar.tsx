@@ -66,13 +66,14 @@ export function AppNavbar() {
   const NavLinks = ({ mobile = false }: { mobile?: boolean }) => (
     <>
       {navItems.map((item) => {
+        const isActive = pathname === item.href;
         const linkButton = (
           <Button
-            variant="ghost"
+            variant={isActive ? "default" : "ghost"} // Use default variant for active, ghost otherwise
             asChild
             className={cn(
               'justify-start w-full text-left',
-              pathname === item.href && 'bg-accent text-accent-foreground',
+              // isActive && 'bg-primary text-primary-foreground', // Replaced with variant logic
               mobile ? 'text-base py-3' : 'text-sm'
             )}
           >
@@ -93,6 +94,7 @@ export function AppNavbar() {
   const UserMenuItems = ({ mobile = false }: { mobile?: boolean}) => (
     <>
       {userMenuItems.map((item) => {
+        const isActive = pathname === item.href;
         const menuItemContent = (
           <>
             <item.icon className={cn("mr-2 h-4 w-4", mobile && "h-5 w-5")} />
@@ -104,11 +106,11 @@ export function AppNavbar() {
           return (
             <SheetClose asChild key={item.href}>
               <Button
-                variant="ghost"
+                variant={isActive ? "default" : "ghost"}
                 asChild
                 className={cn(
-                    'justify-start w-full text-left text-base py-3',
-                    pathname === item.href && 'bg-accent text-accent-foreground'
+                    'justify-start w-full text-left text-base py-3'
+                    // isActive && 'bg-primary text-primary-foreground' // Replaced with variant logic
                 )}
               >
                 <Link href={item.href}>{menuItemContent}</Link>
@@ -118,7 +120,7 @@ export function AppNavbar() {
         } else {
           return (
             <DropdownMenuItem asChild key={item.href}>
-              <Link href={item.href} className={cn(pathname === item.href && 'bg-accent text-accent-foreground')}>
+              <Link href={item.href} className={cn(isActive && 'bg-primary/10 text-primary')}>
                 {menuItemContent}
               </Link>
             </DropdownMenuItem>
@@ -203,7 +205,7 @@ export function AppNavbar() {
                         <Button
                             variant="ghost"
                             onClick={signOut}
-                            className="justify-start w-full text-left text-base py-3"
+                            className="justify-start w-full text-left text-base py-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
                             >
                             <LogOut className="mr-2 h-5 w-5" />
                             Sign Out
