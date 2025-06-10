@@ -7,13 +7,15 @@ import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
-export function ThemeToggle({ className, align }: { className?: string; align?: "center" | "end" | "start" | undefined }) {
+
+export function ThemeToggle({ className }: { className?: string; align?: "center" | "end" | "start" | undefined }) {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
@@ -26,30 +28,38 @@ export function ThemeToggle({ className, align }: { className?: string; align?: 
     return <div className={cn("h-10 w-10", className)} />; // Or your preferred placeholder size
   }
 
+  const isDarkMode = resolvedTheme === "dark";
+
+  const toggleTheme = () => {
+    setTheme(isDarkMode ? "light" : "dark");
+  };
+
+  const tooltipText = isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode";
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className={className}>
-          {resolvedTheme === 'dark' ? (
-            <Moon className="h-[1.2rem] w-[1.2rem]" />
-          ) : (
-            <Sun className="h-[1.2rem] w-[1.2rem]" />
-          )}
-          <span className="sr-only">Toggle theme</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align={align}>
-        <DropdownMenuItem onClick={() => setTheme("light")}>
-          Light
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
-          Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
-          System
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <TooltipProvider delayDuration={0}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className={className}
+            aria-label={tooltipText}
+          >
+            {isDarkMode ? (
+              <Moon className="h-[1.2rem] w-[1.2rem]" />
+            ) : (
+              <Sun className="h-[1.2rem] w-[1.2rem]" />
+            )}
+            <span className="sr-only">{tooltipText}</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{tooltipText}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -62,40 +72,25 @@ export function ThemeToggleSidebar() {
   }, []);
 
   if (!mounted) {
-    return <div className="h-10 w-full" />; // Placeholder for sidebar
+    return <div className="h-10 w-full px-2" > <div className="h-full w-full bg-muted rounded-md animate-pulse"></div></div>; // Placeholder for sidebar
   }
   
-  const currentMode = resolvedTheme === 'dark' ? 'Dark' : 'Light';
+  const isDarkMode = resolvedTheme === "dark";
+
+  const toggleTheme = () => {
+    setTheme(isDarkMode ? "light" : "dark");
+  };
 
   return (
     <div className="w-full px-2">
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                 <Button variant="outline" className="w-full justify-start">
-                    {resolvedTheme === 'dark' ? (
-                        <Moon className="mr-2 h-4 w-4" />
-                    ) : (
-                        <Sun className="mr-2 h-4 w-4" />
-                    )}
-                    <span>{currentMode} Mode</span>
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[calc(100%-1rem)] ml-2"> {/* Adjust width as needed */}
-                <DropdownMenuItem onClick={() => setTheme("light")}>
-                Light
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("dark")}>
-                Dark
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("system")}>
-                System
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <Button variant="outline" className="w-full justify-start" onClick={toggleTheme}>
+            {isDarkMode ? (
+                <Moon className="mr-2 h-4 w-4" />
+            ) : (
+                <Sun className="mr-2 h-4 w-4" />
+            )}
+            <span>{isDarkMode ? "Dark Mode" : "Light Mode"}</span>
+        </Button>
     </div>
   );
-}
-
-function cn(...inputs: (string | undefined | null | false)[]): string {
-  return inputs.filter(Boolean).join(' ');
 }
