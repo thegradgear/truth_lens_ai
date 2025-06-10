@@ -5,10 +5,9 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArticleCard } from '@/components/shared/ArticleCard';
-import type { Article } from '@/types';
-import { fetchUserArticles } from '@/lib/firebase'; // Changed from mockFetchUserArticles
-import { Loader2, ListFilter, Inbox, Search } from 'lucide-react';
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Not used currently
+import type { Article, DetectedArticle } from '@/types';
+import { fetchUserArticles } from '@/lib/firebase';
+import { Loader2, Inbox, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,8 @@ export default function SavedHistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'generated' | 'detected'>('all');
-  const [filterResult, setFilterResult] = useState<'all' | 'Real' | 'Fake'>('all'); // For detected articles
+  const [filterResult, setFilterResult] = useState<'all' | 'Real' | 'Fake'>('all');
+  const [filterDetectionMethod, setFilterDetectionMethod] = useState<'all' | 'custom' | 'llm'>('all');
 
   const loadArticles = useCallback(async () => {
     if (user?.uid) {
@@ -37,7 +37,7 @@ export default function SavedHistoryPage() {
           description: error.message || "Could not load your saved articles. Please try again later.",
           variant: "destructive",
         });
-        setArticles([]); // Clear articles on error
+        setArticles([]);
       } finally {
         setIsLoading(false);
       }
@@ -57,8 +57,14 @@ export default function SavedHistoryPage() {
         if (filterType !== 'all' && article.type !== filterType) {
           return false;
         }
-        if (article.type === 'detected' && filterResult !== 'all' && article.result.label !== filterResult) {
-          return false;
+        if (article.type === 'detected') {
+          const detectedArticle = article as DetectedArticle;
+          if (filterResult !== 'all' && detectedArticle.result.label !== filterResult) {
+            return false;
+          }
+          if (filterDetectionMethod !== 'all' && detectedArticle.detectionMethod !== filterDetectionMethod) {
+            return false;
+          }
         }
         if (searchTerm) {
           const term = searchTerm.toLowerCase();
@@ -75,7 +81,7 @@ export default function SavedHistoryPage() {
         return true;
       })
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [articles, searchTerm, filterType, filterResult]);
+  }, [articles, searchTerm, filterType, filterResult, filterDetectionMethod]);
 
 
   if (isLoading) {
@@ -110,25 +116,25 @@ export default function SavedHistoryPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-6 p-4 border rounded-lg bg-background">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-              <div className="lg:col-span-2">
-                <Label htmlFor="search-articles">Search Articles</Label>
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        id="search-articles"
-                        placeholder="Search by title, content, topic..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                    />
-                </div>
+          <div className="mb-6 p-4 border rounded-lg bg-background space-y-4">
+            <div>
+              <Label htmlFor="search-articles">Search Articles</Label>
+              <div className="relative mt-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                      id="search-articles"
+                      placeholder="Search by title, content, topic..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                  />
               </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end">
               <div>
                 <Label htmlFor="filter-type">Filter by Type</Label>
                 <Select value={filterType} onValueChange={(value: 'all' | 'generated' | 'detected') => setFilterType(value)}>
-                    <SelectTrigger id="filter-type">
+                    <SelectTrigger id="filter-type" className="mt-1">
                         <SelectValue placeholder="Filter by type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -141,13 +147,26 @@ export default function SavedHistoryPage() {
               <div>
                 <Label htmlFor="filter-result">Filter by Result (Detected)</Label>
                  <Select value={filterResult} onValueChange={(value: 'all' | 'Real' | 'Fake') => setFilterResult(value)} disabled={filterType !== 'detected'}>
-                    <SelectTrigger id="filter-result">
+                    <SelectTrigger id="filter-result" className="mt-1">
                         <SelectValue placeholder="Filter by result" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Results</SelectItem>
                         <SelectItem value="Real">Real</SelectItem>
                         <SelectItem value="Fake">Fake</SelectItem>
+                    </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="filter-detection-method">Detection Method (Detected)</Label>
+                 <Select value={filterDetectionMethod} onValueChange={(value: 'all' | 'custom' | 'llm') => setFilterDetectionMethod(value)} disabled={filterType !== 'detected'}>
+                    <SelectTrigger id="filter-detection-method" className="mt-1">
+                        <SelectValue placeholder="Filter by method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Methods</SelectItem>
+                        <SelectItem value="custom">Custom Model (Render API)</SelectItem>
+                        <SelectItem value="llm">Genkit AI Model</SelectItem>
                     </SelectContent>
                 </Select>
               </div>
@@ -162,7 +181,7 @@ export default function SavedHistoryPage() {
                 {articles.length > 0 ? "Your current filters didn't match any articles." : "You haven't saved any articles yet. Try generating or detecting some!"}
               </p>
               {articles.length > 0 && (
-                <Button variant="outline" onClick={() => { setSearchTerm(''); setFilterType('all'); setFilterResult('all');}} className="mt-4">
+                <Button variant="outline" onClick={() => { setSearchTerm(''); setFilterType('all'); setFilterResult('all'); setFilterDetectionMethod('all');}} className="mt-4">
                     Clear Filters
                 </Button>
               )}
@@ -180,9 +199,7 @@ export default function SavedHistoryPage() {
   );
 }
 
-// Extracted Label component as it's simple and locally used.
-// If used elsewhere, consider moving to a shared components directory.
 function Label({ htmlFor, children }: {htmlFor: string, children: React.ReactNode}) {
-    return <label htmlFor={htmlFor} className="block text-sm font-medium text-muted-foreground mb-1">{children}</label>
+    return <label htmlFor={htmlFor} className="block text-sm font-medium text-muted-foreground">{children}</label>
 }
 
