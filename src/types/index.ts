@@ -15,7 +15,7 @@ export interface GeneratedArticle {
   category: string;
   tone: string;
   timestamp: string; 
-  imageDataUri?: string; // Optional: For storing the generated image URI
+  imageUrl?: string; // Changed from imageDataUri to imageUrl (Cloudinary URL)
 }
 
 export interface DetectedArticle {

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { generateFakeNewsArticle, type GenerateFakeNewsArticleInput, type GenerateFakeNewsArticleOutput } from '@/ai/flows/generate-fake-news-article';
-import { generateArticleImage, type GenerateArticleImageInput } from '@/ai/flows/generate-article-image-flow';
+import { generateArticleImage, type GenerateArticleImageInput, type GenerateArticleImageOutput } from '@/ai/flows/generate-article-image-flow';
 import { ArticleCard } from '@/components/shared/ArticleCard';
 import type { GeneratedArticle } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,7 +37,7 @@ export default function GeneratorPage() {
   const [generatedArticle, setGeneratedArticle] = useState<GeneratedArticle | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [generatedImageDataUri, setGeneratedImageDataUri] = useState<string | null>(null);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null); // Stores Cloudinary URL
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   const form = useForm<GeneratorFormValues>({
@@ -52,7 +52,7 @@ export default function GeneratorPage() {
   const onSubmit: SubmitHandler<GeneratorFormValues> = async (data) => {
     setIsLoading(true);
     setGeneratedArticle(null);
-    setGeneratedImageDataUri(null); // Reset image when generating new article
+    setGeneratedImageUrl(null); // Reset image when generating new article text
     try {
       const input: GenerateFakeNewsArticleInput = {
         topic: data.topic,
@@ -70,7 +70,8 @@ export default function GeneratorPage() {
           category: data.category,
           tone: data.tone,
           timestamp: new Date().toISOString(),
-          userId: user?.uid, 
+          userId: user?.uid,
+          // imageUrl will be added after image generation
         };
         setGeneratedArticle(newArticle);
         toast({
@@ -95,29 +96,29 @@ export default function GeneratorPage() {
   const handleGenerateImage = async () => {
     if (!generatedArticle) return;
     setIsGeneratingImage(true);
-    setGeneratedImageDataUri(null);
+    setGeneratedImageUrl(null); // Reset previous image URL
     try {
       const input: GenerateArticleImageInput = {
         topic: generatedArticle.topic,
         category: generatedArticle.category,
       };
-      const result = await generateArticleImage(input);
-      if (result.imageDataUri) {
-        setGeneratedImageDataUri(result.imageDataUri);
-        // Update the article state if we want to save it later
-        // setGeneratedArticle(prev => prev ? { ...prev, imageDataUri: result.imageDataUri } : null);
+      const result: GenerateArticleImageOutput = await generateArticleImage(input);
+      if (result.imageUrl) {
+        setGeneratedImageUrl(result.imageUrl);
+        // Update the article state to include the new imageUrl
+        setGeneratedArticle(prev => prev ? { ...prev, imageUrl: result.imageUrl } : null);
         toast({
-          title: "Image Generated!",
-          description: "An AI-powered header image has been created.",
+          title: "Image Generated & Stored!",
+          description: "An AI-powered header image has been created and stored in Cloudinary.",
         });
       } else {
-        throw new Error("AI did not return an image.");
+        throw new Error("AI did not return an image URL after processing.");
       }
     } catch (error: any) {
-      console.error("Error generating image:", error);
+      console.error("Error generating or storing image:", error);
       toast({
-        title: "Image Generation Failed",
-        description: error.message || "Could not generate the image. Please try again.",
+        title: "Image Generation/Storage Failed",
+        description: error.message || "Could not generate or store the image. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -126,22 +127,19 @@ export default function GeneratorPage() {
   };
 
 
-  const handleSaveArticle = async (articleToSave: GeneratedArticle) => {
+  const handleSaveArticle = async () => {
     if (!user?.uid) {
       toast({ title: "Error", description: "You must be logged in to save articles.", variant: "destructive" });
       return;
     }
-    if (!articleToSave) return;
+    if (!generatedArticle) return;
 
     setIsSaving(true);
     try {
-      const { id, ...dataToSave } = articleToSave;
-      // If imageDataUri is part of articleToSave and you want to save it:
-      // const articleWithImage = { ...dataToSave, imageDataUri: generatedImageDataUri };
-      // const savedData = await saveArticle(user.uid, articleWithImage);
-      // For now, not saving image to Firestore to avoid large documents
+      // The generatedArticle state already includes imageUrl if it was generated
+      const { id, ...dataToSave } = generatedArticle; 
       const savedData = await saveArticle(user.uid, dataToSave); 
-      toast({ title: "Article Saved!", description: "The article has been saved to your history." });
+      toast({ title: "Article Saved!", description: "The article (with image, if generated) has been saved." });
       setGeneratedArticle(prev => prev ? {...prev, id: savedData.id} : null); 
     } catch (error: any) {
       toast({ title: "Save Failed", description: error.message || "Could not save the article.", variant: "destructive" });
@@ -157,7 +155,7 @@ export default function GeneratorPage() {
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl font-headline flex items-center"><Wand2 className="mr-3 h-7 w-7 text-primary"/>Fake News Generator</CardTitle>
           <CardDescription>
-            Craft an AI-generated news article. Specify the topic, category, and desired tone, and let our AI weave a narrative.
+            Craft an AI-generated news article. Specify the topic, category, and desired tone, then optionally generate an image.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -225,11 +223,11 @@ export default function GeneratorPage() {
               <Button type="submit" className="w-full md:w-auto" disabled={isLoading || isSaving || isGeneratingImage}>
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating Article...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating Article Text...
                   </>
                 ) : (
                   <>
-                    <Wand2 className="mr-2 h-4 w-4" /> Generate Article
+                    <Wand2 className="mr-2 h-4 w-4" /> Generate Article Text
                   </>
                 )}
               </Button>
@@ -241,7 +239,7 @@ export default function GeneratorPage() {
       {isLoading && (
         <Card className="shadow-md">
           <CardHeader>
-            <CardTitle className="font-headline flex items-center"><Loader2 className="mr-2 h-5 w-5 animate-spin text-primary"/>Generating Your Article...</CardTitle>
+            <CardTitle className="font-headline flex items-center"><Loader2 className="mr-2 h-5 w-5 animate-spin text-primary"/>Generating Your Article Text...</CardTitle>
             <CardDescription>The AI is working its magic. Please wait a moment.</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center items-center min-h-[200px]">
@@ -254,47 +252,63 @@ export default function GeneratorPage() {
 
       {generatedArticle && !isLoading && (
         <>
+         {/* Display generated image first if available */}
+          {generatedImageUrl && (
+            <Card className="shadow-md mt-6">
+              <CardHeader>
+                <CardTitle className="font-headline text-xl">Generated Header Image</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative aspect-video w-full max-w-2xl mx-auto rounded-md overflow-hidden border shadow">
+                  <Image src={generatedImageUrl} alt="AI Generated Article Header" layout="fill" objectFit="cover" />
+                </div>
+                 <div className="flex items-start p-3 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-700/50 dark:text-yellow-300 text-xs mt-3">
+                    <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+                    <span>This image is AI-generated and stored on Cloudinary. Review carefully before use.</span>
+                 </div>
+              </CardContent>
+            </Card>
+          )}
+
           <ArticleCard 
-            article={generatedArticle} 
-            onSave={handleSaveArticle} 
-            showSaveButton={!generatedArticle.id && !isSaving}
-            isSaving={isSaving}
+            article={generatedArticle} // This will now contain imageUrl if generated
+            // onSave not needed here as ArticleCard save button is for detected, this page has its own save button
+            showSaveButton={false} 
           />
+          
           <Card className="shadow-md mt-6">
             <CardHeader>
-              <CardTitle className="font-headline text-xl">Generate Header Image</CardTitle>
-              <CardDescription>Optionally, create an AI-generated image for your article.</CardDescription>
+              <CardTitle className="font-headline text-xl">Article Actions</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Button onClick={handleGenerateImage} disabled={isGeneratingImage || isLoading} className="w-full md:w-auto">
+            <CardContent className="space-y-4 sm:flex sm:flex-row sm:space-y-0 sm:space-x-4">
+              <Button onClick={handleGenerateImage} disabled={isGeneratingImage || isLoading || isSaving} className="w-full sm:w-auto">
                 {isGeneratingImage ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating Image...
                   </>
                 ) : (
                   <>
-                    <ImageIcon className="mr-2 h-4 w-4" /> Generate Header Image
+                    <ImageIcon className="mr-2 h-4 w-4" /> {generatedImageUrl ? "Regenerate" : "Generate"} Header Image
                   </>
                 )}
               </Button>
-              {isGeneratingImage && (
-                <div className="flex justify-center items-center min-h-[100px] text-muted-foreground">
-                  <p>Creating image, please wait...</p>
-                </div>
-              )}
-              {generatedImageDataUri && (
-                <div className="mt-4 space-y-2">
-                  <h3 className="text-lg font-semibold">Generated Image:</h3>
-                  <div className="relative aspect-video w-full max-w-lg mx-auto rounded-md overflow-hidden border shadow">
-                    <Image src={generatedImageDataUri} alt="AI Generated Article Header" layout="fill" objectFit="cover" />
-                  </div>
-                   <div className="flex items-start p-3 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-700 dark:bg-yellow-900/30 dark:border-yellow-700/50 dark:text-yellow-300 text-xs">
-                      <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
-                      <span>This image is AI-generated for illustrative purposes only. Review carefully before use.</span>
-                   </div>
-                </div>
-              )}
+              <Button onClick={handleSaveArticle} disabled={isSaving || isLoading || isGeneratingImage || !!generatedArticle.id} className="w-full sm:w-auto">
+                {isSaving ? (
+                     <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                     </>
+                ) : (
+                     <>
+                        <Save className="mr-2 h-4 w-4" /> {generatedArticle.id ? "Saved" : "Save Article"}
+                     </>
+                )}
+              </Button>
             </CardContent>
+             {isGeneratingImage && (
+                <CardFooter className="flex justify-center items-center text-muted-foreground">
+                  <p>Creating and storing image, please wait...</p>
+                </CardFooter>
+              )}
           </Card>
         </>
       )}

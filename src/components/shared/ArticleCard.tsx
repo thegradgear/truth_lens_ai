@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { GeneratedArticle, DetectedArticle, Article } from '@/types';
-import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye } from 'lucide-react';
+import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye, Image as ImageIconLucide } from 'lucide-react';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -15,23 +15,30 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image'; // For displaying Cloudinary images
 
-interface ArticleCardProps {
-  article: Article;
-  onSave?: (article: Article) => Promise<void> | void;
-  showSaveButton?: boolean;
-  isSaving?: boolean;
-}
-
-const CONTENT_CHAR_LIMIT = 300;
+const MAX_CONTENT_LINES = 6; // For CSS line-clamp
 
 export function ArticleCard({ article, onSave, showSaveButton = false, isSaving = false }: ArticleCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showReadMoreButton, setShowReadMoreButton] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
   const isGenerated = article.type === 'generated';
   const articleData = article as GeneratedArticle | DetectedArticle;
+
+  const fullText = isGenerated ? (articleData as GeneratedArticle).content : (articleData as DetectedArticle).text;
+
+  useEffect(() => {
+    if (contentRef.current) {
+      // Check if the content is overflowing (clamped)
+      setShowReadMoreButton(contentRef.current.scrollHeight > contentRef.current.clientHeight);
+    }
+  }, [fullText]); // Re-check when fullText changes
 
   const handleSaveClick = async () => {
     if (onSave) {
@@ -42,18 +49,23 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
       }
     }
   };
-
-  const fullText = isGenerated ? (articleData as GeneratedArticle).content : (articleData as DetectedArticle).text;
-  const shouldTruncate = fullText.length > CONTENT_CHAR_LIMIT;
-  const displayText = shouldTruncate ? fullText.substring(0, CONTENT_CHAR_LIMIT) + "..." : fullText;
-
+  
   const resultLabel = articleData.type === 'detected' ? (articleData as DetectedArticle).result.label : '';
   const confidenceScore = articleData.type === 'detected' ? ((articleData as DetectedArticle).result.confidence || 0).toFixed(1) : '';
-
   const modalTitle = isGenerated ? (articleData as GeneratedArticle).title : 'Full Article Text';
 
   return (
     <Card className="shadow-lg w-full flex flex-col">
+      {isGenerated && (articleData as GeneratedArticle).imageUrl && (
+        <div className="relative aspect-video w-full rounded-t-lg overflow-hidden border-b">
+          <Image 
+            src={(articleData as GeneratedArticle).imageUrl!} 
+            alt={`Header for article titled: ${(articleData as GeneratedArticle).title}`} 
+            layout="fill" 
+            objectFit="cover" 
+          />
+        </div>
+      )}
       <CardHeader>
         {isGenerated ? (
           <>
@@ -83,7 +95,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
                 <TooltipProvider delayDuration={0}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                       <Badge variant={ resultLabel === 'Real' ? 'default' : 'destructive'}>
+                       <Badge variant={resultLabel === 'Real' ? 'default' : 'destructive'}>
                         {resultLabel}
                       </Badge>
                     </TooltipTrigger>
@@ -100,45 +112,50 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
         )}
       </CardHeader>
       <CardContent className="flex-grow">
-        <div className="prose prose-sm max-w-none dark:prose-invert text-foreground">
-          <p className="whitespace-pre-wrap">
-            {displayText}
+        <div
+          ref={contentRef}
+          className={`line-clamp-${MAX_CONTENT_LINES} overflow-hidden`}
+        >
+          <p className="whitespace-pre-wrap text-sm text-foreground m-0">
+            {fullText}
           </p>
-          {shouldTruncate && (
-             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-              <DialogTrigger asChild>
-                <Button variant="link" size="sm" className="p-0 h-auto mt-2 text-primary hover:underline">
-                  <Eye className="mr-1 h-4 w-4"/>Read More
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl w-[90vw] max-h-[85vh] flex flex-col">
-                <DialogHeader>
-                  <DialogTitle className="truncate pr-8">{modalTitle}</DialogTitle>
-                  {isGenerated && (
-                    <DialogDescription>
-                      Topic: {(articleData as GeneratedArticle).topic} | Category: {(articleData as GeneratedArticle).category} | Tone: {(articleData as GeneratedArticle).tone}
-                    </DialogDescription>
-                  )}
-                   {!isGenerated && (
-                     <DialogDescription>
-                        Detected Article Analysis
-                    </DialogDescription>
-                  )}
-                </DialogHeader>
-                <ScrollArea className="flex-grow rounded-md border p-4 my-4">
-                  <p className="whitespace-pre-wrap text-sm">
-                    {fullText}
-                  </p>
-                </ScrollArea>
-                <div className="flex justify-end">
-                    <Button variant="outline" onClick={() => setIsModalOpen(false)}>Close</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
         </div>
+        {showReadMoreButton && (
+           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="link" size="sm" className="p-0 h-auto mt-2 text-primary hover:underline">
+                <Eye className="mr-1 h-4 w-4"/>Read More
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl w-[90vw] max-h-[85vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle className="truncate pr-8">{modalTitle}</DialogTitle>
+                {isGenerated && (
+                  <DialogDescription>
+                    Topic: {(articleData as GeneratedArticle).topic} | Category: {(articleData as GeneratedArticle).category} | Tone: {(articleData as GeneratedArticle).tone}
+                  </DialogDescription>
+                )}
+                 {!isGenerated && (
+                   <DialogDescription>
+                      Detected Article Analysis
+                  </DialogDescription>
+                )}
+              </DialogHeader>
+              <ScrollArea className="flex-grow rounded-md border p-4 my-4">
+                <p className="whitespace-pre-wrap text-sm">
+                  {fullText}
+                </p>
+              </ScrollArea>
+              <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Close</Button>
+                  </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-t pt-4 gap-2">
+      <CardFooter className="flex flex-col xs:flex-row justify-between items-start xs:items-center border-t pt-4 gap-2">
         <div className="flex flex-col xs:flex-row xs:flex-wrap xs:items-center gap-x-3 gap-y-1 text-xs text-muted-foreground w-full">
           <div className="flex items-center shrink-0">
             <Clock className="mr-1 h-3 w-3" />
@@ -169,7 +186,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
           )}
         </div>
         {showSaveButton && onSave && (
-          <Button onClick={handleSaveClick} size="sm" variant="outline" disabled={isSaving} className="w-full sm:w-auto mt-2 sm:mt-0 shrink-0">
+          <Button onClick={handleSaveClick} size="sm" variant="outline" disabled={isSaving} className="w-full xs:w-auto mt-2 xs:mt-0 shrink-0">
             {isSaving ? (
                 <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
