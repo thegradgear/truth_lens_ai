@@ -60,7 +60,7 @@ export function AboutSection() {
                     </li>
                     <li className="flex items-start">
                         <CheckIcon className="h-5 w-5 text-primary mr-2 mt-1 shrink-0" />
-                        <span><strong>Ethical Generation:</strong> Explore how AI can craft narratives for educational and creative purposes.</span>
+                        <span><strong>Ethical Generation:</strong> Explore how AI can craft narratives and accompanying visuals for educational and creative purposes.</span>
                     </li>
                     <li className="flex items-start">
                         <CheckIcon className="h-5 w-5 text-primary mr-2 mt-1 shrink-0" />

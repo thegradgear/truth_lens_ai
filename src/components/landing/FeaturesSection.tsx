@@ -1,7 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ScanText, BotMessageSquare, UserCheck, ShieldCheck, BrainCircuit, ListChecks } from 'lucide-react';
-// Image import removed as it's no longer used
+import { ScanText, BotMessageSquare, UserCheck, ShieldCheck, BrainCircuit, ListChecks, Image as ImageIcon } from 'lucide-react';
 
 const features = [
   {
@@ -11,8 +10,8 @@ const features = [
   },
   {
     icon: <BotMessageSquare className="h-10 w-10 text-primary" />,
-    title: "AI Article Generator",
-    description: "Explore AI's creative potential. Generate articles on various topics, categories, and tones for educational or illustrative purposes.",
+    title: "AI Article & Image Generator",
+    description: "Explore AI's creative potential. Generate articles on various topics, categories, and tones, complete with an automatically AI-generated header image.",
   },
   {
     icon: <UserCheck className="h-10 w-10 text-primary" />,
@@ -22,7 +21,7 @@ const features = [
   {
     icon: <ListChecks className="h-10 w-10 text-primary" />,
     title: "Saved History",
-    description: "Keep track of all your generated and detected articles, accessible anytime.",
+    description: "Keep track of all your generated and detected articles, including their images, accessible anytime.",
   },
   {
     icon: <BrainCircuit className="h-10 w-10 text-primary" />,
@@ -43,13 +42,12 @@ export function FeaturesSection() {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">Powerful Features at Your Fingertips</h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Veritas AI offers a suite of tools to help you navigate the complex world of information.
+            Veritas AI offers a suite of tools to help you navigate the complex world of information, including AI-driven content and image generation.
           </p>
         </div>
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => (
             <Card key={index} className="flex flex-col overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 group">
-              {/* Image div and Image component removed */}
               <CardHeader className="items-center text-center pt-6">
                 <div className="p-3 rounded-full bg-primary/10 mb-3">
                   {feature.icon}
