@@ -9,16 +9,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from '@/hooks/use-toast';
 import { detectFakeNews, type DetectFakeNewsInput, type DetectFakeNewsOutput } from '@/ai/flows/detect-fake-news';
+import { llmDetectFakeNews, type LlmDetectFakeNewsInput, type LlmDetectFakeNewsOutput } from '@/ai/flows/llm-detect-fake-news';
 import { ArticleCard } from '@/components/shared/ArticleCard';
 import type { DetectedArticle } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
-import { saveArticle } from '@/lib/firebase'; // Changed from mockSaveArticle
-import { Loader2, ScanSearch, Save } from 'lucide-react';
+import { saveArticle } from '@/lib/firebase';
+import { Loader2, ScanSearch, Save, Brain, Database } from 'lucide-react';
 
 const detectorFormSchema = z.object({
   articleText: z.string().min(50, { message: "Article text must be at least 50 characters." }).max(5000, {message: "Article text must be at most 5000 characters."}),
+  detectionMethod: z.enum(['custom', 'llm'], { required_error: "Please select a detection method." }),
 });
 
 type DetectorFormValues = z.infer<typeof detectorFormSchema>;
@@ -29,22 +32,33 @@ export default function DetectorPage() {
   const [detectionResult, setDetectionResult] = useState<DetectedArticle | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedMethodForDisplay, setSelectedMethodForDisplay] = useState<'custom' | 'llm'>('custom');
+
 
   const form = useForm<DetectorFormValues>({
     resolver: zodResolver(detectorFormSchema),
     defaultValues: {
       articleText: "",
+      detectionMethod: "custom",
     },
   });
 
   const onSubmit: SubmitHandler<DetectorFormValues> = async (data) => {
     setIsLoading(true);
     setDetectionResult(null);
+    setSelectedMethodForDisplay(data.detectionMethod);
+
     try {
-      const input: DetectFakeNewsInput = {
-        articleText: data.articleText,
-      };
-      const result: DetectFakeNewsOutput = await detectFakeNews(input);
+      let result: DetectFakeNewsOutput | LlmDetectFakeNewsOutput;
+      const modelName = data.detectionMethod === 'custom' ? "Your Custom Model" : "Genkit AI Model";
+
+      if (data.detectionMethod === 'custom') {
+        const input: DetectFakeNewsInput = { articleText: data.articleText };
+        result = await detectFakeNews(input);
+      } else {
+        const input: LlmDetectFakeNewsInput = { articleText: data.articleText };
+        result = await llmDetectFakeNews(input);
+      }
       
       if (result.label && result.confidence !== undefined) {
          const newDetection: DetectedArticle = {
@@ -54,13 +68,14 @@ export default function DetectorPage() {
             label: result.label,
             confidence: result.confidence,
           },
-          timestamp: new Date().toISOString(), // Client-side timestamp, Firestore will use serverTimestamp
-          userId: user?.uid, // Will be added by saveArticle function too
+          timestamp: new Date().toISOString(),
+          userId: user?.uid,
+          detectionMethod: data.detectionMethod, // Store which method was used
         };
         setDetectionResult(newDetection);
         toast({
           title: "Detection Complete!",
-          description: `The article is predicted as ${result.label.toLowerCase()} with ${result.confidence.toFixed(1)}% confidence.`,
+          description: `Using ${modelName}, the article is predicted as ${result.label.toLowerCase()} with ${result.confidence.toFixed(1)}% confidence.`,
         });
       } else {
         throw new Error("AI did not return a valid detection.");
@@ -86,7 +101,6 @@ export default function DetectorPage() {
 
     setIsSaving(true);
     try {
-      // Prepare data for Firestore, removing client-side id if it exists
       const { id, ...dataToSave } = articleToSave;
       const savedData = await saveArticle(user.uid, dataToSave); 
       toast({ title: "Detection Saved!", description: "The detection result has been saved to your history." });
@@ -104,12 +118,48 @@ export default function DetectorPage() {
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl font-headline flex items-center"><ScanSearch className="mr-3 h-7 w-7 text-primary"/>Fake News Detector</CardTitle>
           <CardDescription>
-            Paste a news article below. Our AI model will analyze its content and predict whether it's likely real or fake.
+            Paste a news article below. Choose your preferred AI model to analyze its content and predict whether it's likely real or fake.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="detectionMethod"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel className="text-base">Choose Detection Method</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col sm:flex-row gap-4"
+                        disabled={isLoading || isSaving}
+                      >
+                        <FormItem className="flex items-center space-x-3 space-y-0 p-4 border rounded-md flex-1 hover:bg-accent/50 has-[[data-state=checked]]:bg-accent has-[[data-state=checked]]:text-accent-foreground transition-colors">
+                          <FormControl>
+                            <RadioGroupItem value="custom" />
+                          </FormControl>
+                          <FormLabel className="font-normal cursor-pointer flex items-center w-full">
+                            <Database className="mr-2 h-5 w-5 text-primary/80"/> Your Custom Model (Render API)
+                          </FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0 p-4 border rounded-md flex-1 hover:bg-accent/50 has-[[data-state=checked]]:bg-accent has-[[data-state=checked]]:text-accent-foreground transition-colors">
+                          <FormControl>
+                            <RadioGroupItem value="llm" />
+                          </FormControl>
+                          <FormLabel className="font-normal cursor-pointer flex items-center w-full">
+                            <Brain className="mr-2 h-5 w-5 text-primary/80" /> Genkit AI Model (LLM-based)
+                          </FormLabel>
+                        </FormItem>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="articleText"
@@ -148,7 +198,9 @@ export default function DetectorPage() {
          <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="font-headline flex items-center"><Loader2 className="mr-2 h-5 w-5 animate-spin text-primary"/>Analyzing Article...</CardTitle>
-            <CardDescription>Our AI is processing the text. This may take a few moments.</CardDescription>
+            <CardDescription>
+                Our AI ({selectedMethodForDisplay === 'custom' ? 'Your Custom Model' : 'Genkit AI Model'}) is processing the text. This may take a few moments.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center items-center min-h-[150px]">
             <div className="space-y-2 text-center">
@@ -164,9 +216,10 @@ export default function DetectorPage() {
           onSave={handleSaveDetection} 
           showSaveButton={!detectionResult.id && !isSaving} 
           isSaving={isSaving}
+          // You could pass the detection method to ArticleCard if you want to display it there
+          // detectionMethodUsed={selectedMethodForDisplay} 
         />
       )}
     </div>
   );
 }
-

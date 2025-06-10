@@ -1,3 +1,4 @@
+
 export interface User {
   uid: string;
   email: string | null;
@@ -26,6 +27,7 @@ export interface DetectedArticle {
     confidence: number;
   };
   timestamp: string;
+  detectionMethod?: 'custom' | 'llm'; // Added to track which method was used
 }
 
 export type Article = GeneratedArticle | DetectedArticle;
