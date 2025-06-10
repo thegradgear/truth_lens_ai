@@ -36,7 +36,7 @@ export function Footer() {
           <div className="md:justify-self-end">
             <h5 className="font-semibold text-foreground mb-4">Resources</h5>
             <ul className="space-y-3">
-              <li><Link href="/contact" className="hover:text-primary transition-colors text-sm">Contact Page</Link></li>
+              {/* Removed Contact Page Link */}
               <li><Link href="/privacy" className="hover:text-primary transition-colors text-sm">Privacy Policy</Link></li>
               {/* Example for a potential future link:
               <li><Link href="/terms" className="hover:text-primary transition-colors text-sm">Terms of Service</Link></li>
