@@ -12,8 +12,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { MediaLiteracyTipsCard } from '@/components/dashboard/MediaLiteracyTipsCard';
 import { generateFakeNewsArticle, type GenerateFakeNewsArticleInput, type GenerateFakeNewsArticleOutput } from '@/ai/flows/generate-fake-news-article';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Puzzle, CheckCircle, XCircle, Award, RotateCcw, Sparkles } from 'lucide-react';
+import { Loader2, Puzzle, CheckCircle, XCircle, Award, RotateCcw, Sparkles, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 type GamePhase = "setup" | "playing" | "feedback" | "results";
 type ArticleSourceParameters = Omit<GenerateFakeNewsArticleInput, 'topic'> & {topic?: string};
@@ -45,7 +46,6 @@ export default function PlayGamePage() {
   const [score, setScore] = useState<number>(0);
   const [gameArticles, setGameArticles] = useState<GameArticle[]>([]);
   
-  // isLoadingArticle is now for the initial bulk load
   const [isLoadingGameSetup, setIsLoadingGameSetup] = useState<boolean>(false);
   const [feedbackMessage, setFeedbackMessage] = useState<{title: string, description: string, variant: "default" | "destructive"} | null>(null);
 
@@ -62,6 +62,11 @@ export default function PlayGamePage() {
   const handleStartGame = async () => {
     setIsLoadingGameSetup(true);
     setFeedbackMessage(null);
+    toast({
+        title: "Setting Up Your Game",
+        description: "Generating articles, please wait a moment...",
+        duration: numQuestions * 1000, // Rough estimate, can be adjusted
+    });
 
     try {
       const articlePromises: Promise<GameArticle | null>[] = Array.from({ length: numQuestions }).map(async (_, index) => {
@@ -73,7 +78,6 @@ export default function PlayGamePage() {
             toast({ title: `Article ${index + 1} generation failed`, description: "Skipping this article.", variant: "destructive", duration: 2000 });
             return null;
           }
-          // Construct a title based on generation parameters
           const title = `${params.category}: A ${params.tone.toLowerCase()} take on "${params.topic}"`;
           const correctAnswerForGame: 'Real' | 'Fake' = Math.random() < 0.5 ? 'Real' : 'Fake';
           
@@ -108,9 +112,9 @@ export default function PlayGamePage() {
         toast({
           title: "Game Setup Incomplete",
           description: `Successfully generated ${successfullyGeneratedArticles.length} out of ${numQuestions} articles. The game will proceed with the available articles.`,
-          variant: "default", // Use default or warning variant
+          variant: "default", 
         });
-        setNumQuestions(successfullyGeneratedArticles.length); // Adjust total questions
+        setNumQuestions(successfullyGeneratedArticles.length); 
       }
       
       setGameArticles(successfullyGeneratedArticles);
@@ -118,7 +122,7 @@ export default function PlayGamePage() {
       setScore(0);
       setGamePhase("playing");
 
-    } catch (error: any) { // Catch errors from Promise.all or other setup logic
+    } catch (error: any) { 
       toast({
         title: "Game Setup Failed Critically",
         description: error.message || "Could not set up the game due to an unexpected error. Please try again.",
@@ -151,7 +155,7 @@ export default function PlayGamePage() {
 
   const handleNextQuestion = () => {
     setFeedbackMessage(null);
-    if (currentQuestionIndex < gameArticles.length - 1) { // Use gameArticles.length in case it was reduced
+    if (currentQuestionIndex < gameArticles.length - 1) { 
       setCurrentQuestionIndex(prev => prev + 1);
       setGamePhase("playing");
     } else {
@@ -161,8 +165,7 @@ export default function PlayGamePage() {
   
   const handlePlayAgain = () => {
     setGamePhase("setup");
-    // numQuestions selected by user remains or can be reset
-    setNumQuestions(5); // Reset to default or keep user's last choice
+    setNumQuestions(5); 
   };
 
   const renderSetupPhase = () => (
@@ -284,7 +287,7 @@ export default function PlayGamePage() {
 
   const renderFeedbackPhase = () => {
     if (!gameArticles[currentQuestionIndex]) {
-         return <p>Error displaying feedback. Article not found.</p>; // Should not happen if setup is correct
+         return <p>Error displaying feedback. Article not found.</p>; 
     }
     const { title: currentTitle, text: currentText } = gameArticles[currentQuestionIndex];
     return (
@@ -355,9 +358,16 @@ export default function PlayGamePage() {
         </CardHeader>
         <CardContent className="text-center space-y-4">
             <p className="text-lg">{resultMessage}</p>
-          <Button size="lg" className="w-full" onClick={handlePlayAgain}>
-            <RotateCcw className="mr-2 h-5 w-5"/> Play Again
-          </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
+                <Button size="lg" className="w-full sm:w-auto" onClick={handlePlayAgain}>
+                    <RotateCcw className="mr-2 h-5 w-5"/> Play Again
+                </Button>
+                <Button size="lg" variant="outline" asChild className="w-full sm:w-auto">
+                    <Link href="/dashboard">
+                        <LayoutDashboard className="mr-2 h-5 w-5"/> Go to Dashboard
+                    </Link>
+                </Button>
+            </div>
         </CardContent>
       </Card>
 
@@ -367,12 +377,12 @@ export default function PlayGamePage() {
                 <CardTitle className="text-xl font-headline">Your Answers:</CardTitle>
             </CardHeader>
             <CardContent>
-                <ScrollArea className="max-h-[300px]">
+                <ScrollArea className="max-h-[300px] h-full">
                     <ul className="space-y-3">
                         {gameArticles.map((article, index) => (
                             <li key={index} className="p-3 border rounded-md flex justify-between items-center text-sm">
                                 <div className="flex-1 overflow-hidden">
-                                    <span className="font-medium block truncate pr-2">Q{index + 1}: {article.title}</span>
+                                    <span className="font-medium block truncate pr-2" title={article.title}>Q{index + 1}: {article.title}</span>
                                     <span className="text-xs text-muted-foreground">Your guess: {article.userGuess || "N/A"}, Correct: {article.correctAnswer}</span>
                                 </div>
                                 {article.isCorrect ? <CheckCircle className="h-5 w-5 text-green-500 shrink-0"/> : <XCircle className="h-5 w-5 text-red-500 shrink-0"/>}
@@ -394,14 +404,7 @@ export default function PlayGamePage() {
   return (
     <div className="space-y-8 py-8">
       {gamePhase === "setup" && renderSetupPhase()}
-      {isLoadingGameSetup && gamePhase === "setup" && ( // Show loader on setup screen if Start Game is clicked
-         <Card className="w-full max-w-lg mx-auto shadow-xl mt-8">
-            <CardContent className="flex flex-col items-center justify-center min-h-[200px] space-y-3">
-                <Loader2 className="h-10 w-10 animate-spin text-primary"/>
-                <p className="text-muted-foreground">Generating game articles, please wait...</p>
-            </CardContent>
-        </Card>
-      )}
+      {/* Removed the separate loading card for game setup */}
       {gamePhase === "playing" && !isLoadingGameSetup && renderPlayingPhase()}
       {gamePhase === "feedback" && !isLoadingGameSetup && renderFeedbackPhase()}
       {gamePhase === "results" && !isLoadingGameSetup && renderResultsPhase()}
