@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { GeneratedArticle, DetectedArticle, Article, FactCheckResult } from '@/types';
-import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download, Trash2 } from 'lucide-react';
+import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download, Trash2, MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -18,6 +18,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -26,7 +33,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
+  // AlertDialogTrigger, // No longer needed for direct trigger
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -219,16 +226,15 @@ ${factChecksMd.trim()}
     const formattedTimestamp = articleData.timestamp ? format(new Date(articleData.timestamp), "MMMM d, yyyy, h:mm a") : 'N/A';
     let filename = "veritas-ai-export.pdf";
     
-    // Create a hidden element to render for PDF generation
     const pdfElement = document.createElement('div');
     pdfElement.style.position = 'absolute';
-    pdfElement.style.left = '-9999px'; // Position off-screen
-    pdfElement.style.width = '800px'; // A reasonable width for PDF content
+    pdfElement.style.left = '-9999px'; 
+    pdfElement.style.width = '800px'; 
     pdfElement.style.padding = '20px';
     pdfElement.style.fontFamily = 'Arial, sans-serif';
     pdfElement.style.fontSize = '12px';
     pdfElement.style.color = '#333';
-    pdfElement.style.backgroundColor = '#fff'; // Ensure background for canvas
+    pdfElement.style.backgroundColor = '#fff'; 
 
     let htmlContent = '';
 
@@ -241,8 +247,6 @@ ${factChecksMd.trim()}
         <p style="font-size: 10px; color: #777; margin-bottom: 15px;">Generated on: ${formattedTimestamp} by Veritas AI</p>
       `;
       if (genArticle.imageUrl) {
-        // To handle potential CORS issues with html2canvas, we might need to proxy or ensure Cloudinary CORS is permissive
-        // For simplicity, directly embedding. Add crossOrigin="anonymous"
         htmlContent += `<img src="${genArticle.imageUrl}" alt="Article Image" style="max-width: 100%; height: auto; margin-bottom: 15px; border: 1px solid #eee;" crossOrigin="anonymous" />`;
       }
       htmlContent += `<div style="white-space: pre-wrap; line-height: 1.6;">${genArticle.content.replace(/\n/g, '<br />')}</div>`;
@@ -599,50 +603,75 @@ ${factChecksMd.trim()}
                 )}
             </Button>
             )}
-            {article.id && onDelete && user?.uid && (
-              <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="destructive" className="w-full xs:w-auto" disabled={isDeleting}>
-                    {isDeleting ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="mr-2 h-4 w-4" />
-                    )}
-                    Remove
+            
+            {article.id && onDelete && user?.uid ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="w-full xs:w-auto">
+                    <MoreVertical className="h-4 w-4" />
+                    <span className="sr-only">Article Options</span>
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently remove the article from your saved history.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteConfirm} disabled={isDeleting} className={buttonVariants({ variant: "destructive" })}>
-                      {isDeleting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Removing...</> : "Yes, Remove"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportMarkdown} disabled={isExportingPdf || isDeleting}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export Markdown
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportPdf} disabled={isExportingPdf || isDeleting}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Export PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setIsDeleteAlertOpen(true)}
+                    disabled={isDeleting}
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Remove from Saved
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              // Render individual export buttons if not a saved article context
+              <>
+                <Button onClick={handleExportPdf} size="sm" variant="outline" className="w-full xs:w-auto" disabled={isExportingPdf}>
+                    {isExportingPdf ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...
+                        </>
+                    ) : (
+                        <>
+                            <FileText className="mr-2 h-4 w-4" /> Export PDF
+                        </>
+                    )}
+                </Button>
+                <Button onClick={handleExportMarkdown} size="sm" variant="outline" className="w-full xs:w-auto">
+                    <Download className="mr-2 h-4 w-4" /> Export Markdown
+                </Button>
+              </>
             )}
-             <Button onClick={handleExportPdf} size="sm" variant="outline" className="w-full xs:w-auto" disabled={isExportingPdf}>
-                {isExportingPdf ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...
-                    </>
-                ) : (
-                    <>
-                        <FileText className="mr-2 h-4 w-4" /> Export PDF
-                    </>
-                )}
-            </Button>
-            <Button onClick={handleExportMarkdown} size="sm" variant="outline" className="w-full xs:w-auto">
-                <Download className="mr-2 h-4 w-4" /> Export Markdown
-            </Button>
         </div>
       </CardFooter>
+
+      {/* AlertDialog for delete confirmation - it's always in the DOM but shown/hidden by isDeleteAlertOpen state */}
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently remove the article from your saved history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} disabled={isDeleting} className={buttonVariants({ variant: "destructive" })}>
+              {isDeleting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Removing...</> : "Yes, Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </Card>
   );
 }
