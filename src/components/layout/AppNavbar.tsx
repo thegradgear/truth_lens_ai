@@ -28,6 +28,7 @@ import {
   LogOut,
   UserCircle,
   Menu,
+  Puzzle, // Added Puzzle icon
 } from 'lucide-react';
 
 const navItems = [
@@ -35,6 +36,7 @@ const navItems = [
   { href: '/generator', label: 'Generator', icon: PenTool },
   { href: '/detector', label: 'Detector', icon: ScanText },
   { href: '/saved', label: 'Saved History', icon: Bookmark },
+  { href: '/playgame', label: 'Play Game', icon: Puzzle }, // Added Play Game link
 ];
 
 const userMenuItems = [
@@ -69,11 +71,10 @@ export function AppNavbar() {
         const isActive = pathname === item.href;
         const linkButton = (
           <Button
-            variant={isActive ? "default" : "ghost"} // Use default variant for active, ghost otherwise
+            variant={isActive ? "default" : "ghost"}
             asChild
             className={cn(
               'justify-start w-full text-left',
-              // isActive && 'bg-primary text-primary-foreground', // Replaced with variant logic
               mobile ? 'text-base py-3' : 'text-sm'
             )}
           >
@@ -110,7 +111,6 @@ export function AppNavbar() {
                 asChild
                 className={cn(
                     'justify-start w-full text-left text-base py-3'
-                    // isActive && 'bg-primary text-primary-foreground' // Replaced with variant logic
                 )}
               >
                 <Link href={item.href}>{menuItemContent}</Link>
@@ -134,16 +134,15 @@ export function AppNavbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
-        <div className="flex items-center mr-auto md:mr-6"> {/* Ensure logo is on the left, mr-auto pushes next items to right on mobile */}
+        <div className="flex items-center mr-auto md:mr-6">
           <Logo />
         </div>
 
-        <nav className="hidden md:flex items-center space-x-1 mx-auto"> {/* Centered nav for desktop */}
+        <nav className="hidden md:flex items-center space-x-1 mx-auto">
           <NavLinks />
         </nav>
 
-        {/* Profile, Theme Toggle (Desktop), and Hamburger Menu (Mobile) on the right */}
-        <div className="flex items-center space-x-2 md:space-x-3 ml-auto md:ml-0"> {/* ml-auto pushes this block to the right on desktop, md:ml-0 to keep it right */}
+        <div className="flex items-center space-x-2 md:space-x-3 ml-auto md:ml-0">
           <div className="hidden md:block">
             <ThemeToggle align="end"/>
           </div>
@@ -183,7 +182,7 @@ export function AppNavbar() {
             </Button>
           )}
 
-          <div className="md:hidden"> {/* Hamburger menu only on mobile */}
+          <div className="md:hidden">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
