@@ -117,6 +117,18 @@ export default function DetectorPage() {
 
   return (
     <div className="space-y-8">
+      <Card className="bg-secondary/70 border-primary/30">
+        <CardHeader className="flex flex-row items-start gap-4">
+          <Lightbulb className="h-8 w-8 text-primary mt-1 shrink-0" />
+          <div>
+            <CardTitle className="font-headline text-xl">Understanding AI Detection Tools</CardTitle>
+            <CardDescription className="mt-1">
+              Remember that AI tools, including Veritas AI, are not infallible. Detection scores are probabilistic. Always apply critical thinking when interpreting AI-based analysis.
+            </CardDescription>
+          </div>
+        </CardHeader>
+      </Card>
+
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl font-headline flex items-center"><ScanSearch className="mr-3 h-7 w-7 text-primary"/>Fake News Detector</CardTitle>
@@ -221,18 +233,6 @@ export default function DetectorPage() {
           isSaving={isSaving}
         />
       )}
-
-      <Card className="bg-secondary/70 border-primary/30 mt-8">
-        <CardHeader className="flex flex-row items-start gap-4">
-          <Lightbulb className="h-8 w-8 text-primary mt-1 shrink-0" />
-          <div>
-            <CardTitle className="font-headline text-xl">Understanding AI Detection Tools</CardTitle>
-            <CardDescription className="mt-1">
-              Remember that AI tools, including Veritas AI, are not infallible. Detection scores are probabilistic. Always apply critical thinking when interpreting AI-based analysis.
-            </CardDescription>
-          </div>
-        </CardHeader>
-      </Card>
     </div>
   );
 }

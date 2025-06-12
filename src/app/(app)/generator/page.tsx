@@ -164,6 +164,27 @@ export default function GeneratorPage() {
 
   return (
     <div className="space-y-8">
+       <Card className="bg-secondary/70 border-primary/30">
+        <CardHeader className="flex flex-row items-start gap-4">
+          <Lightbulb className="h-8 w-8 text-primary mt-1 shrink-0" />
+          <div>
+            <CardTitle className="font-headline text-xl">Understanding AI Generation</CardTitle>
+            <CardDescription className="mt-1">
+              AI-generated content (text and images) is for illustrative or educational purposes. Always apply critical thinking when reviewing or using AI-created materials.
+            </CardDescription>
+          </div>
+        </CardHeader>
+         <CardContent className="flex flex-row items-start gap-4 border-t pt-6">
+            <AlertTriangle className="h-8 w-8 text-destructive mt-1 shrink-0" />
+            <div>
+                <h4 className="font-semibold">Ethical Use Reminder</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                Use the generation tools responsibly. Do not create or spread misinformation. Veritas AI is intended for learning and understanding AI capabilities.
+                </p>
+            </div>
+        </CardContent>
+      </Card>
+
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl font-headline flex items-center">
@@ -320,28 +341,6 @@ export default function GeneratorPage() {
           </Card>
         </>
       )}
-
-      <Card className="bg-secondary/70 border-primary/30 mt-8">
-        <CardHeader className="flex flex-row items-start gap-4">
-          <Lightbulb className="h-8 w-8 text-primary mt-1 shrink-0" />
-          <div>
-            <CardTitle className="font-headline text-xl">Understanding AI Generation</CardTitle>
-            <CardDescription className="mt-1">
-              AI-generated content (text and images) is for illustrative or educational purposes. Always apply critical thinking when reviewing or using AI-created materials.
-            </CardDescription>
-          </div>
-        </CardHeader>
-         <CardContent className="flex flex-row items-start gap-4 border-t pt-6">
-            <AlertTriangle className="h-8 w-8 text-destructive mt-1 shrink-0" />
-            <div>
-                <h4 className="font-semibold">Ethical Use Reminder</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                Use the generation tools responsibly. Do not create or spread misinformation. Veritas AI is intended for learning and understanding AI capabilities.
-                </p>
-            </div>
-        </CardContent>
-      </Card>
-
     </div>
   );
 }
