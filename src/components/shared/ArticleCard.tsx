@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { GeneratedArticle, DetectedArticle, Article, FactCheckResult } from '@/types';
-import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye, MessageSquareQuote, ExternalLink, ListChecks, FileText } from 'lucide-react';
+import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -14,7 +14,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogClose,
   DialogFooter,
 } from "@/components/ui/dialog";
@@ -23,24 +22,25 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 const MAX_CONTENT_LINES = 6;
 
 // Helper function to process justification for summary display
 const getJustificationSummary = (fullJustification?: string): string[] => {
   if (!fullJustification) return [];
-  // Split by newline, remove bullet-like prefixes, trim, filter empty, take first 2-3
   return fullJustification
     .split('\n')
     .map(item => item.trim().replace(/^[-*]\s*/, '').trim())
     .filter(s => s.length > 0)
-    .slice(0, 3); // Ensure 2-3 points for summary
+    .slice(0, 3); 
 };
 
 export function ArticleCard({ article, onSave, showSaveButton = false, isSaving = false }: { article: Article; onSave?: (articleToSave: Article) => Promise<void>; showSaveButton?: boolean; isSaving?: boolean; }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showReadMoreButton, setShowReadMoreButton] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const isGenerated = article.type === 'generated';
   const articleData = article as GeneratedArticle | DetectedArticle;
@@ -61,7 +61,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
   const openModal = () => setIsModalOpen(true);
 
   const handleSaveClick = async (event?: React.MouseEvent) => {
-    event?.stopPropagation(); // Prevent modal from opening if card is also clickable
+    event?.stopPropagation(); 
     if (onSave) {
       try {
         await onSave(article);
@@ -69,6 +69,93 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
         console.error("Error during onSave callback:", error);
       }
     }
+  };
+
+  const handleExportMarkdown = () => {
+    let markdownContent = "";
+    let filename = "veritas-ai-article.md";
+    const formattedTimestamp = articleData.timestamp ? format(new Date(articleData.timestamp), "MMMM d, yyyy, h:mm a") : 'N/A';
+
+    if (article.type === 'generated') {
+      const genArticle = articleData as GeneratedArticle;
+      const safeTopic = genArticle.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50) || 'article';
+      filename = `veritas-ai-generated-${safeTopic}.md`;
+      markdownContent = `
+# ${genArticle.title}
+${genArticle.imageUrl ? `\n![Header Image for ${genArticle.title.replace(/[^a-zA-Z0-9 ]/g, "")}](${genArticle.imageUrl})\n` : ''}
+${genArticle.content}
+
+---
+**Details:**
+- **Type:** Generated Article
+- **Topic:** ${genArticle.topic}
+- **Category:** ${genArticle.category}
+- **Tone:** ${genArticle.tone}
+- **Generated on:** ${formattedTimestamp}
+- *Exported from Veritas AI*
+`;
+    } else if (article.type === 'detected') {
+      const detArticle = articleData as DetectedArticle;
+      const simpleTitle = detArticle.text.substring(0, 30).replace(/[^a-z0-9]+/g, '-').toLowerCase() || 'analysis';
+      filename = `veritas-ai-detection-report-${simpleTitle}.md`;
+      
+      let justificationMd = "";
+      if (detArticle.justification) {
+        justificationMd = `\n- **AI Justification:**\n`;
+        detArticle.justification.split('\n').forEach(line => {
+          const cleanedLine = line.trim().replace(/^[-*]\s*/, '').trim();
+          if (cleanedLine) {
+            justificationMd += `  - ${cleanedLine}\n`;
+          }
+        });
+      }
+
+      let factChecksMd = "";
+      if (detArticle.factChecks && detArticle.factChecks.length > 0) {
+        factChecksMd = "\n- **Fact-Checks (Mock Data):**\n";
+        detArticle.factChecks.forEach(fc => {
+          factChecksMd += `  - **Source:** ${fc.source}\n`;
+          factChecksMd += `    - **Claim Reviewed:** ${fc.claimReviewed.replace(/\n/g, ' ')}\n`; // Ensure claim is single line
+          factChecksMd += `    - **Rating:** ${fc.rating}\n`;
+          if (fc.url) {
+            factChecksMd += `    - **Link:** [View Source](${fc.url})\n`;
+          }
+        });
+      }
+
+      markdownContent = `
+# Analysis Report: Detected Article
+
+${detArticle.text}
+
+---
+**Detection Analysis:**
+- **Type:** Detected Article
+- **Prediction:** ${detArticle.result.label} (Confidence: ${detArticle.result.confidence.toFixed(1)}%)
+- **Detection Method:** ${detArticle.detectionMethod || 'N/A'}
+${justificationMd.trim()}
+${factChecksMd.trim()}
+- **Analyzed on:** ${formattedTimestamp}
+- *Exported from Veritas AI*
+`;
+    }
+
+    markdownContent = markdownContent.trim().replace(/\n\s*\n\s*\n/g, '\n\n');
+
+    const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export Successful",
+      description: `${filename} has been downloaded.`,
+    });
   };
   
   const detectedArticleData = article.type === 'detected' ? article as DetectedArticle : null;
@@ -93,7 +180,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
         >
           <Image 
             src={(articleData as GeneratedArticle).imageUrl!} 
-            alt={`Header for article titled: ${(articleData as GeneratedArticle).title}`} 
+            alt={`Header for article titled: ${(articleData as GeneratedArticle).title.replace(/[^a-zA-Z0-9 ]/g, "")}`} 
             layout="fill" 
             objectFit="cover" 
           />
@@ -101,7 +188,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
       )}
       <CardHeader 
         className={cn(isModalOpen ? '' : 'cursor-pointer')}
-        onClick={!isModalOpen ? openModal : undefined} // Only make clickable if modal not already open via button
+        onClick={!isModalOpen ? openModal : undefined}
         role={!isModalOpen ? "button" : undefined}
         tabIndex={!isModalOpen ? 0 : undefined}
         onKeyDown={(e) => { if (!isModalOpen && (e.key === 'Enter' || e.key === ' ')) openModal(); }}
@@ -170,7 +257,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
                 </Button>
                 </DialogTrigger>
             )}
-            <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl w-[90vw] max-h-[85vh] flex flex-col">
+            <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl w-[90vw] max-h-[85vh] flex flex-col overflow-hidden">
               <DialogHeader>
                 <DialogTitle className="truncate pr-8">{modalTitle}</DialogTitle>
                 {isGenerated && (
@@ -184,7 +271,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
                   </DialogDescription>
                 )}
               </DialogHeader>
-              <ScrollArea className="flex-grow rounded-md border p-4 my-4">
+              <ScrollArea className="flex-1 min-h-0 rounded-md border p-4">
                 <p className="whitespace-pre-wrap text-sm">
                   {fullText}
                 </p>
@@ -218,7 +305,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
                   </div>
                 )}
               </ScrollArea>
-              <DialogFooter>
+              <DialogFooter className="mt-4">
                   <DialogClose asChild>
                     <Button variant="outline">Close</Button>
                   </DialogClose>
@@ -285,19 +372,24 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
             </TooltipProvider>
           )}
         </div>
-        {showSaveButton && onSave && (
-          <Button onClick={(e) => handleSaveClick(e)} size="sm" variant="outline" disabled={isSaving} className="w-full xs:w-auto mt-2 xs:mt-0 shrink-0">
-            {isSaving ? (
-                <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-                </>
-            ) : (
-                <>
-                    <Save className="mr-2 h-4 w-4" /> Save
-                </>
+        <div className="flex flex-col xs:flex-row gap-2 w-full xs:w-auto mt-2 xs:mt-0 shrink-0">
+            {showSaveButton && onSave && (
+            <Button onClick={(e) => handleSaveClick(e)} size="sm" variant="outline" disabled={isSaving} className="w-full xs:w-auto">
+                {isSaving ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                    </>
+                ) : (
+                    <>
+                        <Save className="mr-2 h-4 w-4" /> Save
+                    </>
+                )}
+            </Button>
             )}
-          </Button>
-        )}
+            <Button onClick={handleExportMarkdown} size="sm" variant="outline" className="w-full xs:w-auto">
+                <Download className="mr-2 h-4 w-4" /> Export Markdown
+            </Button>
+        </div>
       </CardFooter>
     </Card>
   );
