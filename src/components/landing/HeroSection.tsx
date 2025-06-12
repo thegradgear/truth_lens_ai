@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
@@ -29,6 +30,7 @@ export function HeroSection() {
                 </Link>
               </Button>
             </div>
+            {/* The following div containing AI-Powered Detection and Creative Generation texts is removed
             <div className="mt-6 flex space-x-6">
               <div className="flex items-center text-sm text-muted-foreground">
                 <CheckCircle className="mr-2 h-5 w-5 text-green-500" />
@@ -39,6 +41,7 @@ export function HeroSection() {
                 Creative Generation
               </div>
             </div>
+            */}
           </div>
           <div className="relative aspect-video rounded-xl overflow-hidden shadow-2xl group">
              <Image
