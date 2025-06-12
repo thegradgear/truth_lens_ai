@@ -65,7 +65,7 @@ export default function PlayGamePage() {
     toast({
         title: "Setting Up Your Game",
         description: "Generating articles, please wait a moment...",
-        duration: numQuestions * 1000, // Rough estimate, can be adjusted
+        duration: numQuestions * 1000, 
     });
 
     try {
@@ -377,7 +377,7 @@ export default function PlayGamePage() {
                 <CardTitle className="text-xl font-headline">Your Answers:</CardTitle>
             </CardHeader>
             <CardContent>
-                <ScrollArea className="max-h-[300px] h-full">
+                <ScrollArea className="max-h-[300px]">
                     <ul className="space-y-3">
                         {gameArticles.map((article, index) => (
                             <li key={index} className="p-3 border rounded-md flex justify-between items-center text-sm">
@@ -404,7 +404,6 @@ export default function PlayGamePage() {
   return (
     <div className="space-y-8 py-8">
       {gamePhase === "setup" && renderSetupPhase()}
-      {/* Removed the separate loading card for game setup */}
       {gamePhase === "playing" && !isLoadingGameSetup && renderPlayingPhase()}
       {gamePhase === "feedback" && !isLoadingGameSetup && renderFeedbackPhase()}
       {gamePhase === "results" && !isLoadingGameSetup && renderResultsPhase()}
