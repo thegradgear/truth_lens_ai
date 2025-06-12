@@ -20,7 +20,7 @@ import {
   setDoc, 
   type Timestamp 
 } from 'firebase/firestore';
-import type { Article } from '@/types';
+import type { Article, GeneratedArticle, DetectedArticle } from '@/types';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -116,20 +116,58 @@ export const signOut = async () => {
 };
 
 
-export const saveArticle = async (userId: string, articleData: Omit<Article, 'id' | 'timestamp'> & { timestamp?: any }) => {
+export const saveArticle = async (userId: string, articleDataToSave: Omit<Article, 'id' | 'timestamp'> & { timestamp?: any }) => {
   if (!userId) {
     throw new Error("User ID is required to save an article.");
   }
   try {
     const userArticlesCollectionRef = collection(db, 'users', userId, 'articles');
-    const docRef = await addDoc(userArticlesCollectionRef, {
-      ...articleData,
-      timestamp: serverTimestamp(), 
-    });
-    const { timestamp, ...restOfArticleData } = articleData; 
-    return { id: docRef.id, ...restOfArticleData, userId, timestamp: new Date().toISOString() }; 
+
+    // Create a mutable copy for Firestore and add server timestamp
+    const firestorePayload: { [key: string]: any } = {
+      ...articleDataToSave,
+      timestamp: serverTimestamp(),
+    };
+
+    // Remove optional fields if they are undefined, as Firestore doesn't allow undefined.
+    if (articleDataToSave.type === 'detected') {
+      const detectedData = articleDataToSave as Omit<DetectedArticle, 'id' | 'timestamp'>;
+      if (detectedData.justification === undefined) {
+        delete firestorePayload.justification;
+      }
+      if (detectedData.factChecks === undefined) {
+        delete firestorePayload.factChecks;
+      }
+      // detectionMethod is required in the form, so it should be present.
+      // If it could be undefined, it would need: if (detectedData.detectionMethod === undefined) delete firestorePayload.detectionMethod;
+    } else if (articleDataToSave.type === 'generated') {
+      const generatedData = articleDataToSave as Omit<GeneratedArticle, 'id' | 'timestamp'>;
+      if (generatedData.imageUrl === undefined) {
+        delete firestorePayload.imageUrl;
+      }
+    }
+
+    const docRef = await addDoc(userArticlesCollectionRef, firestorePayload);
+    
+    // Return the article with its new ID and the original structure (which might include undefined for client-side state).
+    // The client-side timestamp is for immediate UI update consistency.
+    const finalReturnedArticle: Article = {
+        id: docRef.id,
+        ...articleDataToSave, // Uses the original data passed in
+        timestamp: new Date().toISOString(), 
+    };
+    // Ensure userId is part of the final object if it wasn't already in articleDataToSave (it should be)
+    if (!finalReturnedArticle.userId) {
+        finalReturnedArticle.userId = userId;
+    }
+    
+    return finalReturnedArticle;
   } catch (error) {
     console.error("Error saving article to Firestore:", error);
+    if (error instanceof Error && error.message.includes("invalid data")) {
+        console.error("Data intended for Firestore (after potential modifications):", articleDataToSave);
+        throw new Error(`Failed to save article due to invalid data. Firestore error: ${error.message}. Check server console for data details.`);
+    }
     throw new Error("Failed to save article.");
   }
 };
