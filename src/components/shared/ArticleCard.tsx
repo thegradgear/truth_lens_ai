@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { GeneratedArticle, DetectedArticle, Article, FactCheckResult } from '@/types';
-import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye, MessageSquareQuote, ExternalLink, ListChecks } from 'lucide-react';
+import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye, MessageSquareQuote, ExternalLink, ListChecks, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -16,13 +16,24 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogClose,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 
 const MAX_CONTENT_LINES = 6;
+
+// Helper function to process justification for summary display
+const getJustificationSummary = (fullJustification?: string): string[] => {
+  if (!fullJustification) return [];
+  return fullJustification
+    .split('\n')
+    .map(item => item.trim().replace(/^[-*]\s*/, '').trim()) // Remove bullet markers and trim
+    .filter(s => s.length > 0)
+    .slice(0, 3); // Take first 2-3 points
+};
 
 export function ArticleCard({ article, onSave, showSaveButton = false, isSaving = false }: { article: Article; onSave?: (articleToSave: Article) => Promise<void>; showSaveButton?: boolean; isSaving?: boolean; }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,9 +47,15 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
 
   useEffect(() => {
     if (contentRef.current) {
-      setShowReadMoreButton(contentRef.current.scrollHeight > contentRef.current.clientHeight);
+      // A slight delay to ensure contentRef has its final dimensions after render
+      const timer = setTimeout(() => {
+        if (contentRef.current) {
+          setShowReadMoreButton(contentRef.current.scrollHeight > contentRef.current.clientHeight);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [fullText]);
+  }, [fullText, isModalOpen]); // Re-check if modal closes, as content might re-clamp
 
   const handleSaveClick = async () => {
     if (onSave) {
@@ -56,6 +73,8 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
   const justification = detectedArticleData?.justification;
   const factChecks = detectedArticleData?.factChecks;
   const modalTitle = isGenerated ? (articleData as GeneratedArticle).title : 'Full Article Text & Analysis';
+
+  const justificationSummaryPoints = useMemo(() => getJustificationSummary(justification), [justification]);
 
   return (
     <Card className="shadow-lg w-full flex flex-col">
@@ -82,7 +101,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
             <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
                 <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
                 <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Category: {(articleData as GeneratedArticle).category}</span>
-                <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Tone: {(articleData as GeneratedArticle).tone}</span>
+                <span className="flex items-center"><MessageSquareQuote className="mr-1 h-3 w-3" /> Tone: {(articleData as GeneratedArticle).tone}</span>
             </div>
           </>
         ) : (
@@ -117,19 +136,22 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
       <CardContent className="flex-grow">
         <div
           ref={contentRef}
-          className={`line-clamp-${MAX_CONTENT_LINES} overflow-hidden`}
+          className={`text-sm text-foreground m-0 ${isModalOpen ? '' : `line-clamp-${MAX_CONTENT_LINES}`}`}
         >
-          <p className="whitespace-pre-wrap text-sm text-foreground m-0">
+          <p className="whitespace-pre-wrap">
             {fullText}
           </p>
         </div>
-        {showReadMoreButton && (
+        
+        {(showReadMoreButton || isModalOpen) && (
            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogTrigger asChild>
-              <Button variant="link" size="sm" className="p-0 h-auto mt-2 text-primary hover:underline">
-                <Eye className="mr-1 h-4 w-4"/>Read More / View Analysis
-              </Button>
-            </DialogTrigger>
+            {!isModalOpen && (
+                <DialogTrigger asChild>
+                <Button variant="link" size="sm" className="p-0 h-auto mt-2 text-primary hover:underline">
+                    <Eye className="mr-1 h-4 w-4"/>Read More / View Analysis
+                </Button>
+                </DialogTrigger>
+            )}
             <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl w-[90vw] max-h-[85vh] flex flex-col">
               <DialogHeader>
                 <DialogTitle className="truncate pr-8">{modalTitle}</DialogTitle>
@@ -150,9 +172,12 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
                 </p>
                 {!isGenerated && justification && (
                   <div className="mt-4 pt-4 border-t">
-                    <h4 className="font-semibold text-md mb-2 flex items-center"><MessageSquareQuote className="mr-2 h-5 w-5 text-primary"/>AI Justification:</h4>
+                    <h4 className="font-semibold text-md mb-2 flex items-center"><FileText className="mr-2 h-5 w-5 text-primary"/>AI Justification:</h4>
                     <ul className="list-disc list-inside text-sm space-y-1 pl-2 text-muted-foreground">
-                      {justification.split('\n').map((item, index) => item.trim().replace(/^- /, '').length > 0 && <li key={index}>{item.trim().replace(/^- /, '')}</li>)}
+                      {justification.split('\n').map((item, index) => {
+                        const cleanedItem = item.trim().replace(/^[-*]\s*/, '');
+                        return cleanedItem.length > 0 && <li key={index}>{cleanedItem}</li>;
+                      })}
                     </ul>
                   </div>
                 )}
@@ -184,19 +209,22 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
           </Dialog>
         )}
 
-        {/* Display justification and fact-checks directly in card if no "Read More" or for summary */}
-        {!isGenerated && !showReadMoreButton && justification && (
+        {!isGenerated && justificationSummaryPoints.length > 0 && !showReadMoreButton && !isModalOpen && (
           <>
             <Separator className="my-3" />
             <div>
-                <h4 className="font-semibold text-sm mb-1 flex items-center"><MessageSquareQuote className="mr-2 h-4 w-4 text-primary/80"/>AI Justification (Summary):</h4>
-                <p className="text-xs text-muted-foreground line-clamp-2">
-                    {justification.split('\n').map(item => item.trim().replace(/^- /, '')).filter(s => s.length > 0).join(' ')}
-                </p>
+                <h4 className="font-semibold text-sm mb-1 flex items-center"><FileText className="mr-2 h-4 w-4 text-primary/80"/>AI Justification (Summary):</h4>
+                <div className="space-y-1">
+                    {justificationSummaryPoints.map((point, index) => (
+                        <p key={index} className="text-xs text-muted-foreground truncate">
+                            &bull; {point}
+                        </p>
+                    ))}
+                </div>
             </div>
           </>
         )}
-         {!isGenerated && !showReadMoreButton && factChecks && factChecks.length > 0 && (
+         {!isGenerated && factChecks && factChecks.length > 0 && !showReadMoreButton && !isModalOpen && (
            <>
             <Separator className="my-3" />
             <div>
@@ -256,3 +284,4 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
     </Card>
   );
 }
+

@@ -27,7 +27,7 @@ const FactCheckResultSchema = z.object({
 const LlmDetectFakeNewsOutputSchema = z.object({
   label: z.enum(['Real', 'Fake']).describe('The predicted label for the article (Real or Fake).'),
   confidence: z.number().min(0).max(100).describe('The confidence score of the prediction (0-100).'),
-  justification: z.string().optional().describe('Bullet-point reasons or highlighted phrases supporting the prediction.'),
+  justification: z.string().optional().describe('Bullet-point reasons supporting the prediction (2-3 main points, plain text).'),
   factChecks: z.array(FactCheckResultSchema).optional().describe('Relevant fact-checks from external sources.'),
 });
 export type LlmDetectFakeNewsOutput = z.infer<typeof LlmDetectFakeNewsOutputSchema>;
@@ -60,7 +60,7 @@ const externalFactCheckerTool = ai.defineTool(
             }
         ];
     }
-    return []; // Or return a message like [{ source: "Mock System", claimReviewed: "N/A", rating: "No specific claims found or tool is mock.", url: undefined }]
+    return [];
   }
 );
 
@@ -71,14 +71,14 @@ export async function llmDetectFakeNews(input: LlmDetectFakeNewsInput): Promise<
 
 const llmDetectFakeNewsPrompt = ai.definePrompt({
   name: 'llmDetectFakeNewsPrompt',
-  tools: [externalFactCheckerTool], // Added mock fact-checking tool
+  tools: [externalFactCheckerTool],
   input: {schema: LlmDetectFakeNewsInputSchema},
   output: {schema: LlmDetectFakeNewsOutputSchema},
   prompt: `You are an AI assistant specializing in fake news detection and analysis.
 Analyze the following news article text.
 Based on your analysis, determine if the article is 'Real' or 'Fake'.
 You MUST provide a confidence score (an integer between 0 and 100) for your prediction.
-You MUST provide a brief justification for your prediction in bullet points. Focus on why you made the classification.
+You MUST provide a brief justification for your prediction, consisting of 2 to 3 main bullet points. Each bullet point should be a short sentence. Do NOT use HTML formatting in the justification; provide plain text bullet points, each starting with a hyphen (-) or asterisk (*).
 If the article contains verifiable claims, consider using the 'externalFactCheckerTool' to find related fact-checks. Include any findings from this tool in the 'factChecks' output field. If the tool returns no results, you can omit the 'factChecks' field or return an empty array.
 
 Article Text:
@@ -106,7 +106,6 @@ const llmDetectFakeNewsFlow = ai.defineFlow(
     }
     output.confidence = Math.max(0, Math.min(100, parseFloat(output.confidence.toFixed(1))));
 
-    // Ensure justification is a string if provided
     if (output.justification && typeof output.justification !== 'string') {
         output.justification = JSON.stringify(output.justification);
     }
@@ -114,3 +113,4 @@ const llmDetectFakeNewsFlow = ai.defineFlow(
     return output;
   }
 );
+
