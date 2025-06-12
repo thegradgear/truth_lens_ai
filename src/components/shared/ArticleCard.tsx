@@ -23,6 +23,8 @@ import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const MAX_CONTENT_LINES = 6;
 
@@ -41,6 +43,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
   const [showReadMoreButton, setShowReadMoreButton] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const isGenerated = article.type === 'generated';
   const articleData = article as GeneratedArticle | DetectedArticle;
@@ -115,7 +118,7 @@ ${genArticle.content}
         factChecksMd = "\n- **Fact-Checks (Mock Data):**\n";
         detArticle.factChecks.forEach(fc => {
           factChecksMd += `  - **Source:** ${fc.source}\n`;
-          factChecksMd += `    - **Claim Reviewed:** ${fc.claimReviewed.replace(/\n/g, ' ')}\n`; // Ensure claim is single line
+          factChecksMd += `    - **Claim Reviewed:** ${fc.claimReviewed.replace(/\n/g, ' ')}\n`; 
           factChecksMd += `    - **Rating:** ${fc.rating}\n`;
           if (fc.url) {
             factChecksMd += `    - **Link:** [View Source](${fc.url})\n`;
@@ -157,6 +160,177 @@ ${factChecksMd.trim()}
       description: `${filename} has been downloaded.`,
     });
   };
+
+  const handleExportPdf = async () => {
+    setIsExportingPdf(true);
+    toast({
+      title: "Generating PDF...",
+      description: "This may take a few moments.",
+    });
+
+    const formattedTimestamp = articleData.timestamp ? format(new Date(articleData.timestamp), "MMMM d, yyyy, h:mm a") : 'N/A';
+    let filename = "veritas-ai-export.pdf";
+    
+    // Create a hidden element to render for PDF generation
+    const pdfElement = document.createElement('div');
+    pdfElement.style.position = 'absolute';
+    pdfElement.style.left = '-9999px'; // Position off-screen
+    pdfElement.style.width = '800px'; // A reasonable width for PDF content
+    pdfElement.style.padding = '20px';
+    pdfElement.style.fontFamily = 'Arial, sans-serif';
+    pdfElement.style.fontSize = '12px';
+    pdfElement.style.color = '#333';
+    pdfElement.style.backgroundColor = '#fff'; // Ensure background for canvas
+
+    let htmlContent = '';
+
+    if (article.type === 'generated') {
+      const genArticle = articleData as GeneratedArticle;
+      const safeTopic = genArticle.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50) || 'article';
+      filename = `veritas-ai-generated-${safeTopic}.pdf`;
+      htmlContent = `
+        <h1 style="font-size: 24px; margin-bottom: 10px; color: #1a73e8;">${genArticle.title}</h1>
+        <p style="font-size: 10px; color: #777; margin-bottom: 15px;">Generated on: ${formattedTimestamp} by Veritas AI</p>
+      `;
+      if (genArticle.imageUrl) {
+        // To handle potential CORS issues with html2canvas, we might need to proxy or ensure Cloudinary CORS is permissive
+        // For simplicity, directly embedding. Add crossOrigin="anonymous"
+        htmlContent += `<img src="${genArticle.imageUrl}" alt="Article Image" style="max-width: 100%; height: auto; margin-bottom: 15px; border: 1px solid #eee;" crossOrigin="anonymous" />`;
+      }
+      htmlContent += `<div style="white-space: pre-wrap; line-height: 1.6;">${genArticle.content.replace(/\n/g, '<br />')}</div>`;
+      htmlContent += `
+        <hr style="margin: 20px 0; border-top: 1px solid #ccc;"/>
+        <p style="font-size: 11px;"><strong>Topic:</strong> ${genArticle.topic}</p>
+        <p style="font-size: 11px;"><strong>Category:</strong> ${genArticle.category}</p>
+        <p style="font-size: 11px;"><strong>Tone:</strong> ${genArticle.tone}</p>
+      `;
+    } else if (article.type === 'detected') {
+      const detArticle = articleData as DetectedArticle;
+      const simpleTitle = detArticle.text.substring(0, 30).replace(/[^a-z0-9]+/g, '-').toLowerCase() || 'analysis';
+      filename = `veritas-ai-detection-report-${simpleTitle}.pdf`;
+      htmlContent = `
+        <h1 style="font-size: 24px; margin-bottom: 10px; color: #1a73e8;">Analysis Report</h1>
+        <p style="font-size: 10px; color: #777; margin-bottom: 15px;">Analyzed on: ${formattedTimestamp} by Veritas AI</p>
+        <h2 style="font-size: 16px; margin-top: 20px; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Original Article Text:</h2>
+        <div style="white-space: pre-wrap; line-height: 1.6; margin-bottom: 20px; padding: 10px; border: 1px solid #f0f0f0; background-color: #f9f9f9;">${detArticle.text.replace(/\n/g, '<br />')}</div>
+        <hr style="margin: 20px 0; border-top: 1px solid #ccc;"/>
+        <h2 style="font-size: 16px; margin-top: 20px; margin-bottom: 10px;">Detection Analysis:</h2>
+        <p style="font-size: 12px;"><strong>Prediction:</strong> <span style="font-weight: bold; color: ${detArticle.result.label === 'Fake' ? '#d93025' : '#1e8e3e'};">${detArticle.result.label}</span> (Confidence: ${detArticle.result.confidence.toFixed(1)}%)</p>
+        <p style="font-size: 12px;"><strong>Detection Method:</strong> ${detArticle.detectionMethod === 'custom' ? 'Custom Model' : 'Genkit AI Model'}</p>
+      `;
+      if (detArticle.justification) {
+        htmlContent += `<h3 style="font-size: 14px; margin-top: 15px; margin-bottom: 5px;">AI Justification:</h3><ul style="list-style-type: disc; padding-left: 20px; font-size: 12px; line-height: 1.5;">`;
+        detArticle.justification.split('\n').forEach(line => {
+          const cleanedLine = line.trim().replace(/^[-*]\s*/, '').trim();
+          if (cleanedLine) htmlContent += `<li>${cleanedLine}</li>`;
+        });
+        htmlContent += `</ul>`;
+      }
+      if (detArticle.factChecks && detArticle.factChecks.length > 0) {
+        htmlContent += `<h3 style="font-size: 14px; margin-top: 15px; margin-bottom: 5px;">Fact-Checks (Mock Data):</h3>`;
+        detArticle.factChecks.forEach(fc => {
+          htmlContent += `
+            <div style="font-size: 12px; border: 1px solid #e0e0e0; padding: 8px; margin-bottom: 8px; border-radius: 4px;">
+              <p><strong>Source:</strong> ${fc.source}</p>
+              <p><strong>Claim Reviewed:</strong> ${fc.claimReviewed}</p>
+              <p><strong>Rating:</strong> ${fc.rating}</p>
+              ${fc.url ? `<p><strong>Link:</strong> <a href="${fc.url}" target="_blank" style="color: #1a73e8; text-decoration: none;">View Source</a></p>` : ''}
+            </div>
+          `;
+        });
+      }
+    }
+
+    pdfElement.innerHTML = htmlContent;
+    document.body.appendChild(pdfElement);
+    
+    // Wait for images to load if any. This is a simple approach.
+    // A more robust way would be to listen to onload events of all images.
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+
+    try {
+      const canvas = await html2canvas(pdfElement, { 
+        scale: 2, // Improve resolution
+        useCORS: true, // Important for external images
+        logging: true, // For debugging
+        backgroundColor: '#ffffff', // Explicit background
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'pt', // points
+        format: 'a4' // A4 page size
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+      
+      const ratio = canvasWidth / canvasHeight;
+      const imgWidthInPdf = pdfWidth - 40; // 20pt margin on each side
+      const imgHeightInPdf = imgWidthInPdf / ratio;
+
+      let position = 20; // Initial y position with margin
+      let remainingCanvasHeight = canvasHeight;
+      let pageCanvasStartY = 0;
+
+      // Add pages as needed
+      while (remainingCanvasHeight > 0) {
+        // Create a temporary canvas for the current page's content segment
+        const pageCanvas = document.createElement('canvas');
+        const pageCtx = pageCanvas.getContext('2d');
+        if (!pageCtx) throw new Error("Could not get 2D context for page canvas");
+
+        // Max height of image data on one PDF page (considering margins)
+        const maxContentHeightOnPage = (pdfHeight - 40) * (canvasWidth / imgWidthInPdf);
+
+        // Calculate height of the segment to draw from the main canvas
+        const segmentHeightOnCanvas = Math.min(remainingCanvasHeight, maxContentHeightOnPage);
+        
+        pageCanvas.width = canvasWidth;
+        pageCanvas.height = segmentHeightOnCanvas;
+
+        // Draw the segment from the main canvas to the page canvas
+        pageCtx.drawImage(canvas, 0, pageCanvasStartY, canvasWidth, segmentHeightOnCanvas, 0, 0, canvasWidth, segmentHeightOnCanvas);
+        
+        const pageImgData = pageCanvas.toDataURL('image/png');
+        const segmentImgHeightInPdf = imgWidthInPdf * (segmentHeightOnCanvas / canvasWidth);
+
+        if (position !== 20) { // Not the first page
+          pdf.addPage();
+          position = 20; // Reset position for new page
+        }
+        
+        pdf.addImage(pageImgData, 'PNG', 20, position, imgWidthInPdf, segmentImgHeightInPdf);
+        
+        remainingCanvasHeight -= segmentHeightOnCanvas;
+        pageCanvasStartY += segmentHeightOnCanvas;
+
+        if (remainingCanvasHeight > 0) {
+           position = pdfHeight; // Prepare for next page, effectively starting from top on new page
+        }
+      }
+      
+      pdf.save(filename);
+      toast({
+        title: "PDF Export Successful!",
+        description: `${filename} has been downloaded.`,
+      });
+    } catch (error: any) {
+      console.error("Error exporting PDF:", error);
+      toast({
+        title: "PDF Export Failed",
+        description: error.message || "Could not generate PDF. Check console for details.",
+        variant: "destructive",
+      });
+    } finally {
+      document.body.removeChild(pdfElement);
+      setIsExportingPdf(false);
+    }
+  };
   
   const detectedArticleData = article.type === 'detected' ? article as DetectedArticle : null;
   const resultLabel = detectedArticleData?.result.label;
@@ -168,7 +342,7 @@ ${factChecksMd.trim()}
   const justificationSummaryPoints = useMemo(() => getJustificationSummary(justification), [justification]);
 
   return (
-    <Card className="shadow-lg w-full flex flex-col">
+    <Card className="shadow-lg w-full flex flex-col overflow-hidden">
       {isGenerated && (articleData as GeneratedArticle).imageUrl && (
         <div 
           className="relative aspect-video w-full rounded-t-lg overflow-hidden border-b cursor-pointer"
@@ -386,6 +560,17 @@ ${factChecksMd.trim()}
                 )}
             </Button>
             )}
+             <Button onClick={handleExportPdf} size="sm" variant="outline" className="w-full xs:w-auto" disabled={isExportingPdf}>
+                {isExportingPdf ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...
+                    </>
+                ) : (
+                    <>
+                        <FileText className="mr-2 h-4 w-4" /> Export PDF
+                    </>
+                )}
+            </Button>
             <Button onClick={handleExportMarkdown} size="sm" variant="outline" className="w-full xs:w-auto">
                 <Download className="mr-2 h-4 w-4" /> Export Markdown
             </Button>
