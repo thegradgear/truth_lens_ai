@@ -64,7 +64,7 @@ export default function DashboardPage() {
 
         {/* Right Column: Feature Cards */}
         <div className="md:col-span-2 order-first md:order-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6"> {/* Changed here: removed sm:grid-cols-2 */}
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">News Generator</CardTitle>
