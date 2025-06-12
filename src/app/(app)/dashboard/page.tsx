@@ -20,7 +20,7 @@ export default function DashboardPage() {
             Welcome to Veritas AI, {user?.displayName || user?.email || 'User'}!
           </CardTitle>
           <CardDescription className="text-lg text-muted-foreground">
-            Your central hub for generating articles with images, detecting news authenticity, and playing our media literacy game. Navigate the information landscape with greater clarity and insight.
+            Your central hub for generating articles with images, detecting news authenticity using dual AI models, and sharpening your skills with our 'Guess Real or Fake?' media literacy game.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -56,15 +56,16 @@ export default function DashboardPage() {
       </Card>
 
       {/* Main Content Area: Media Literacy on left, Feature Cards on right for md+ screens */}
-      <div className="flex flex-col gap-6 md:grid md:grid-cols-2 md:gap-8"> {/* Changed to md:grid-cols-2 */}
+      <div className="flex flex-col gap-6 md:grid md:grid-cols-2 md:gap-8">
         {/* Left Column: Media Literacy Tips */}
-        <div className="md:col-span-1 order-last md:order-1"> {/* Stays md:col-span-1 */}
+        <div className="md:col-span-1 order-last md:order-1">
           <MediaLiteracyTipsCard />
         </div>
 
         {/* Right Column: Feature Cards */}
-        <div className="md:col-span-1 order-first md:order-2"> {/* Changed to md:col-span-1 */}
-          <div className="grid grid-cols-1 gap-6">
+        <div className="md:col-span-1 order-first md:order-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* News Generator Card */}
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">News Generator</CardTitle>
@@ -84,6 +85,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
+            {/* Fake News Detector Card */}
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Fake News Detector</CardTitle>
@@ -100,7 +102,8 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow">
+            {/* Saved History Card - Spans full width on LG */}
+            <Card className="hover:shadow-lg transition-shadow lg:col-span-2">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Saved History</CardTitle>
                 <Bookmark className="h-5 w-5 text-muted-foreground" />
@@ -116,7 +119,8 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
             
-            <Card className="hover:shadow-lg transition-shadow">
+            {/* Media Literacy Game Card - Spans full width on LG */}
+            <Card className="hover:shadow-lg transition-shadow lg:col-span-2">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Media Literacy Game</CardTitle>
                 <Puzzle className="h-5 w-5 text-muted-foreground" />
