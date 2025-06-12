@@ -17,7 +17,7 @@ import { ArticleCard } from '@/components/shared/ArticleCard';
 import type { DetectedArticle } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveArticle } from '@/lib/firebase';
-import { Loader2, ScanSearch, Save, Brain, Database } from 'lucide-react';
+import { Loader2, ScanSearch, Save, Brain, Database, Lightbulb } from 'lucide-react';
 
 const detectorFormSchema = z.object({
   articleText: z.string().min(50, { message: "Article text must be at least 50 characters." }).max(10000, {message: "Article text must be at most 10000 characters."}), // Increased max length
@@ -95,20 +95,17 @@ export default function DetectorPage() {
     }
   };
 
-  const handleSaveDetection = async (articleToSave: Article) => {
-     if (articleToSave.type !== 'detected') return; // Ensure it's a DetectedArticle
-    const detectedArticleToSave = articleToSave as DetectedArticle;
-
+  const handleSaveDetection = async (articleToSave: DetectedArticle) => {
     if (!user?.uid) {
       toast({ title: "Error", description: "You must be logged in to save detections.", variant: "destructive" });
       return;
     }
-    if (!detectedArticleToSave) return;
+    if (!articleToSave) return;
 
     setIsSaving(true);
     try {
-      const { id, ...dataToSave } = detectedArticleToSave;
-      const savedData = await saveArticle(user.uid, dataToSave); 
+      const { id, ...dataToSave } = articleToSave; // Ensure id is not part of dataToSave
+      const savedData = await saveArticle(user.uid, dataToSave as Omit<DetectedArticle, 'id'>); 
       toast({ title: "Detection Saved!", description: "The detection result has been saved to your history." });
       setDetectionResult(prev => prev ? {...prev, id: savedData.id } : null); 
     } catch (error: any) {
@@ -219,12 +216,23 @@ export default function DetectorPage() {
       {detectionResult && (
         <ArticleCard 
           article={detectionResult} 
-          onSave={handleSaveDetection} 
+          onSave={() => handleSaveDetection(detectionResult)} 
           showSaveButton={!detectionResult.id && !isSaving} 
           isSaving={isSaving}
         />
       )}
+
+      <Card className="bg-secondary/70 border-primary/30 mt-8">
+        <CardHeader className="flex flex-row items-start gap-4">
+          <Lightbulb className="h-8 w-8 text-primary mt-1 shrink-0" />
+          <div>
+            <CardTitle className="font-headline text-xl">Understanding AI Detection Tools</CardTitle>
+            <CardDescription className="mt-1">
+              Remember that AI tools, including Veritas AI, are not infallible. Detection scores are probabilistic. Always apply critical thinking when interpreting AI-based analysis.
+            </CardDescription>
+          </div>
+        </CardHeader>
+      </Card>
     </div>
   );
 }
-

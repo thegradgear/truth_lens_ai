@@ -110,27 +110,6 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Card className="bg-secondary border-primary/30">
-        <CardHeader className="flex flex-row items-start gap-4">
-          <Lightbulb className="h-8 w-8 text-primary mt-1" />
-          <div>
-            <CardTitle className="font-headline text-xl">Understanding AI Tools</CardTitle>
-            <CardDescription className="mt-1">
-              Remember that AI tools, including Veritas AI, are not infallible. Detection scores are probabilistic and generated content (text and images) is for illustrative or educational purposes. Always apply critical thinking.
-            </CardDescription>
-          </div>
-        </CardHeader>
-         <CardContent className="flex flex-row items-start gap-4">
-            <AlertTriangle className="h-8 w-8 text-destructive mt-1" />
-            <div>
-                <h4 className="font-semibold">Ethical Use Reminder</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                Use the generation tools responsibly. Do not create or spread misinformation. Veritas AI is intended for learning and understanding AI capabilities.
-                </p>
-            </div>
-        </CardContent>
-      </Card>
-
       <MediaLiteracyTipsCard />
 
     </div>

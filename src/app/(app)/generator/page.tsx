@@ -18,7 +18,7 @@ import { ArticleCard } from '@/components/shared/ArticleCard';
 import type { GeneratedArticle } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveArticle } from '@/lib/firebase';
-import { Loader2, Wand2, Save, AlertTriangle, Image as ImageIconLucide } from 'lucide-react';
+import { Loader2, Wand2, Save, AlertTriangle, Image as ImageIconLucide, Lightbulb } from 'lucide-react';
 
 
 const generatorFormSchema = z.object({
@@ -320,6 +320,28 @@ export default function GeneratorPage() {
           </Card>
         </>
       )}
+
+      <Card className="bg-secondary/70 border-primary/30 mt-8">
+        <CardHeader className="flex flex-row items-start gap-4">
+          <Lightbulb className="h-8 w-8 text-primary mt-1 shrink-0" />
+          <div>
+            <CardTitle className="font-headline text-xl">Understanding AI Generation</CardTitle>
+            <CardDescription className="mt-1">
+              AI-generated content (text and images) is for illustrative or educational purposes. Always apply critical thinking when reviewing or using AI-created materials.
+            </CardDescription>
+          </div>
+        </CardHeader>
+         <CardContent className="flex flex-row items-start gap-4 border-t pt-6">
+            <AlertTriangle className="h-8 w-8 text-destructive mt-1 shrink-0" />
+            <div>
+                <h4 className="font-semibold">Ethical Use Reminder</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                Use the generation tools responsibly. Do not create or spread misinformation. Veritas AI is intended for learning and understanding AI capabilities.
+                </p>
+            </div>
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
