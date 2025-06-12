@@ -8,7 +8,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { MediaLiteracyTipsCard } from '@/components/dashboard/MediaLiteracyTipsCard'; // Re-using for tips
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { MediaLiteracyTipsCard } from '@/components/dashboard/MediaLiteracyTipsCard';
 import { generateFakeNewsArticle, type GenerateFakeNewsArticleInput, type GenerateFakeNewsArticleOutput } from '@/ai/flows/generate-fake-news-article';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Puzzle, CheckCircle, XCircle, Award, RotateCcw, Sparkles } from 'lucide-react';
@@ -18,9 +19,10 @@ type GamePhase = "setup" | "playing" | "feedback" | "results";
 type ArticleSourceParameters = Omit<GenerateFakeNewsArticleInput, 'topic'> & {topic?: string};
 
 interface GameArticle {
+  title: string;
   text: string;
-  sourceParams: ArticleSourceParameters; // Store how it was generated for potential future use
-  correctAnswer: 'Real' | 'Fake'; // The "truth" for the game
+  sourceParams: ArticleSourceParameters;
+  correctAnswer: 'Real' | 'Fake';
   userGuess?: 'Real' | 'Fake';
   isCorrect?: boolean;
 }
@@ -42,8 +44,9 @@ export default function PlayGamePage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
   const [gameArticles, setGameArticles] = useState<GameArticle[]>([]);
-  const [currentArticleText, setCurrentArticleText] = useState<string>("");
-  const [isLoadingArticle, setIsLoadingArticle] = useState<boolean>(false);
+  
+  // isLoadingArticle is now for the initial bulk load
+  const [isLoadingGameSetup, setIsLoadingGameSetup] = useState<boolean>(false);
   const [feedbackMessage, setFeedbackMessage] = useState<{title: string, description: string, variant: "default" | "destructive"} | null>(null);
 
   const { toast } = useToast();
@@ -56,42 +59,75 @@ export default function PlayGamePage() {
     };
   };
 
-  const fetchNewArticle = async () => {
-    setIsLoadingArticle(true);
+  const handleStartGame = async () => {
+    setIsLoadingGameSetup(true);
     setFeedbackMessage(null);
-    setCurrentArticleText("");
-    try {
-      const params = generateRandomArticleParams();
-      const result: GenerateFakeNewsArticleOutput = await generateFakeNewsArticle(params);
-      if (!result.article) {
-        throw new Error("AI failed to generate article content.");
-      }
-      const correctAnswerForGame: 'Real' | 'Fake' = Math.random() < 0.5 ? 'Real' : 'Fake';
-      
-      setGameArticles(prev => [
-        ...prev,
-        { text: result.article, sourceParams: params, correctAnswer: correctAnswerForGame }
-      ]);
-      setCurrentArticleText(result.article);
 
-    } catch (error: any) {
+    try {
+      const articlePromises: Promise<GameArticle | null>[] = Array.from({ length: numQuestions }).map(async (_, index) => {
+        try {
+          const params = generateRandomArticleParams();
+          const result: GenerateFakeNewsArticleOutput = await generateFakeNewsArticle(params);
+          if (!result.article) {
+            console.error(`AI failed to generate article content for question ${index + 1}.`);
+            toast({ title: `Article ${index + 1} generation failed`, description: "Skipping this article.", variant: "destructive", duration: 2000 });
+            return null;
+          }
+          // Construct a title based on generation parameters
+          const title = `${params.category}: A ${params.tone.toLowerCase()} take on "${params.topic}"`;
+          const correctAnswerForGame: 'Real' | 'Fake' = Math.random() < 0.5 ? 'Real' : 'Fake';
+          
+          return {
+            title,
+            text: result.article,
+            sourceParams: params,
+            correctAnswer: correctAnswerForGame
+          };
+        } catch (error) {
+            console.error(`Error generating article for question ${index + 1}:`, error);
+            toast({ title: `Article ${index + 1} generation error`, description: (error as Error).message, variant: "destructive", duration: 2000 });
+            return null;
+        }
+      });
+
+      const results = await Promise.all(articlePromises);
+      const successfullyGeneratedArticles = results.filter(article => article !== null) as GameArticle[];
+
+      if (successfullyGeneratedArticles.length === 0) {
+         toast({
+          title: "Game Setup Failed",
+          description: "No articles could be generated. Please try adjusting settings or try again later.",
+          variant: "destructive",
+        });
+        setGamePhase("setup");
+        setIsLoadingGameSetup(false);
+        return;
+      }
+      
+      if (successfullyGeneratedArticles.length < numQuestions) {
+        toast({
+          title: "Game Setup Incomplete",
+          description: `Successfully generated ${successfullyGeneratedArticles.length} out of ${numQuestions} articles. The game will proceed with the available articles.`,
+          variant: "default", // Use default or warning variant
+        });
+        setNumQuestions(successfullyGeneratedArticles.length); // Adjust total questions
+      }
+      
+      setGameArticles(successfullyGeneratedArticles);
+      setCurrentQuestionIndex(0);
+      setScore(0);
+      setGamePhase("playing");
+
+    } catch (error: any) { // Catch errors from Promise.all or other setup logic
       toast({
-        title: "Error Generating Article",
-        description: error.message || "Could not fetch a new article for the game. Please try again.",
+        title: "Game Setup Failed Critically",
+        description: error.message || "Could not set up the game due to an unexpected error. Please try again.",
         variant: "destructive",
       });
-      // Potentially allow retry or end game
+      setGamePhase("setup");
     } finally {
-      setIsLoadingArticle(false);
+      setIsLoadingGameSetup(false);
     }
-  };
-
-  const handleStartGame = () => {
-    setGamePhase("playing");
-    setCurrentQuestionIndex(0);
-    setScore(0);
-    setGameArticles([]);
-    fetchNewArticle();
   };
 
   const handleGuess = (guess: 'Real' | 'Fake') => {
@@ -114,10 +150,10 @@ export default function PlayGamePage() {
   };
 
   const handleNextQuestion = () => {
-    if (currentQuestionIndex < numQuestions - 1) {
+    setFeedbackMessage(null);
+    if (currentQuestionIndex < gameArticles.length - 1) { // Use gameArticles.length in case it was reduced
       setCurrentQuestionIndex(prev => prev + 1);
       setGamePhase("playing");
-      fetchNewArticle();
     } else {
       setGamePhase("results");
     }
@@ -125,7 +161,8 @@ export default function PlayGamePage() {
   
   const handlePlayAgain = () => {
     setGamePhase("setup");
-    // numQuestions remains as selected
+    // numQuestions selected by user remains or can be reset
+    setNumQuestions(5); // Reset to default or keep user's last choice
   };
 
   const renderSetupPhase = () => (
@@ -133,7 +170,7 @@ export default function PlayGamePage() {
       <CardHeader>
         <CardTitle className="text-2xl md:text-3xl font-headline flex items-center"><Puzzle className="mr-3 h-7 w-7 text-primary"/>Guess Real or Fake?</CardTitle>
         <CardDescription>
-          Test your media literacy skills! We'll show you AI-generated articles. You guess if they're meant to be Real or Fake in this game context.
+          Test your media literacy skills! We'll generate some articles. You guess if they're meant to be Real or Fake in this game context.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -144,6 +181,7 @@ export default function PlayGamePage() {
             value={String(numQuestions)}
             onValueChange={(value) => setNumQuestions(Number(value))}
             className="mt-2 grid grid-cols-3 gap-4"
+            disabled={isLoadingGameSetup}
           >
             {[5, 10, 15].map(num => (
               <Label
@@ -151,10 +189,11 @@ export default function PlayGamePage() {
                 htmlFor={`num-${num}`}
                 className={cn(
                     "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer",
-                    numQuestions === num && "border-primary ring-2 ring-primary"
+                    numQuestions === num && "border-primary ring-2 ring-primary",
+                    isLoadingGameSetup && "opacity-50 cursor-not-allowed"
                 )}
               >
-                <RadioGroupItem value={String(num)} id={`num-${num}`} className="sr-only" />
+                <RadioGroupItem value={String(num)} id={`num-${num}`} className="sr-only" disabled={isLoadingGameSetup} />
                 <span className="text-xl font-semibold">{num}</span>
                 <span className="text-xs text-muted-foreground">Questions</span>
               </Label>
@@ -163,36 +202,58 @@ export default function PlayGamePage() {
         </div>
       </CardContent>
       <CardFooter>
-        <Button size="lg" className="w-full" onClick={handleStartGame}>
-            <Sparkles className="mr-2 h-5 w-5" /> Start Game
+        <Button size="lg" className="w-full" onClick={handleStartGame} disabled={isLoadingGameSetup}>
+            {isLoadingGameSetup ? (
+                <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Setting up game...
+                </>
+            ) : (
+                <>
+                    <Sparkles className="mr-2 h-5 w-5" /> Start Game
+                </>
+            )}
         </Button>
       </CardFooter>
     </Card>
   );
 
-  const renderPlayingPhase = () => (
+  const renderPlayingPhase = () => {
+    if (!gameArticles[currentQuestionIndex]) {
+        return (
+             <Card className="w-full max-w-2xl mx-auto shadow-xl">
+                <CardHeader>
+                    <CardTitle className="text-xl md:text-2xl font-headline">Error</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p>Could not load the current question. An article might have failed to generate.</p>
+                    <Button onClick={handleNextQuestion} className="mt-4 mr-2">Skip to Next (if any)</Button>
+                    <Button onClick={handlePlayAgain} variant="outline" className="mt-4">Play Again</Button>
+                </CardContent>
+            </Card>
+        );
+    }
+    
+    const { title: currentTitle, text: currentText } = gameArticles[currentQuestionIndex];
+
+    return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl">
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle className="text-xl md:text-2xl font-headline">Question {currentQuestionIndex + 1} of {numQuestions}</CardTitle>
+          <CardTitle className="text-xl md:text-2xl font-headline">Question {currentQuestionIndex + 1} of {gameArticles.length}</CardTitle>
           <div className="text-lg font-semibold">Score: {score}</div>
         </div>
-        <Progress value={((currentQuestionIndex + 1) / numQuestions) * 100} className="mt-2 h-2" />
+        <Progress value={((currentQuestionIndex + 1) / gameArticles.length) * 100} className="mt-2 h-2" />
       </CardHeader>
       <CardContent className="space-y-4">
         <Card className="bg-secondary/30">
-            <CardContent className="p-4">
+            <CardHeader className="pb-2 pt-4">
+                <CardTitle className="text-lg font-semibold">{currentTitle || "Article Title"}</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
                 <p className="text-sm text-muted-foreground mb-2">Analyze the article snippet below:</p>
-                 {isLoadingArticle ? (
-                    <div className="flex items-center justify-center min-h-[150px] space-x-2">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary"/>
-                        <p className="text-muted-foreground">Generating article...</p>
-                    </div>
-                ) : (
-                    <div className="min-h-[150px] max-h-[300px] overflow-y-auto p-3 border rounded-md bg-background text-sm whitespace-pre-wrap">
-                        {currentArticleText || "Loading article..."}
-                    </div>
-                )}
+                <ScrollArea className="h-[200px] max-h-[250px] p-3 border rounded-md bg-background text-sm whitespace-pre-wrap">
+                    {currentText || "Loading article..."}
+                </ScrollArea>
             </CardContent>
         </Card>
         
@@ -200,18 +261,18 @@ export default function PlayGamePage() {
           <Button 
             size="lg" 
             variant="outline" 
-            className="text-lg py-6 border-2 border-green-500 hover:bg-green-500/10 hover:text-green-600 has-[[data-active=true]]:bg-green-500 has-[[data-active=true]]:text-white"
+            className="text-lg py-6 border-2 border-green-500 hover:bg-green-500/10 hover:text-green-600 data-[active='true']:bg-green-500 data-[active='true']:text-white"
             onClick={() => handleGuess('Real')} 
-            disabled={isLoadingArticle || gamePhase === 'feedback'}
+            disabled={gamePhase === 'feedback'}
           >
             <CheckCircle className="mr-2 h-6 w-6"/> Real
           </Button>
           <Button 
             size="lg" 
             variant="outline" 
-            className="text-lg py-6 border-2 border-red-500 hover:bg-red-500/10 hover:text-red-600 has-[[data-active=true]]:bg-red-500 has-[[data-active=true]]:text-white"
+            className="text-lg py-6 border-2 border-red-500 hover:bg-red-500/10 hover:text-red-600 data-[active='true']:bg-red-500 data-[active='true']:text-white"
             onClick={() => handleGuess('Fake')} 
-            disabled={isLoadingArticle || gamePhase === 'feedback'}
+            disabled={gamePhase === 'feedback'}
           >
             <XCircle className="mr-2 h-6 w-6"/> Fake
           </Button>
@@ -219,8 +280,14 @@ export default function PlayGamePage() {
       </CardContent>
     </Card>
   );
+  }
 
-  const renderFeedbackPhase = () => (
+  const renderFeedbackPhase = () => {
+    if (!gameArticles[currentQuestionIndex]) {
+         return <p>Error displaying feedback. Article not found.</p>; // Should not happen if setup is correct
+    }
+    const { title: currentTitle, text: currentText } = gameArticles[currentQuestionIndex];
+    return (
      <Card className="w-full max-w-2xl mx-auto shadow-xl">
       <CardHeader>
         <div className="flex justify-between items-center">
@@ -241,24 +308,40 @@ export default function PlayGamePage() {
             </AlertDescription>
           </Alert>
         )}
-        <div className="min-h-[100px] max-h-[250px] overflow-y-auto p-3 border rounded-md bg-secondary/20 text-sm whitespace-pre-wrap">
-            <p className="font-medium text-muted-foreground mb-1">The article you reviewed:</p>
-            {currentArticleText}
-        </div>
+        <Card className="bg-secondary/20">
+            <CardHeader className="pb-1 pt-3">
+                 <CardTitle className="text-md font-medium">{currentTitle}</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+                <ScrollArea className="h-[150px] max-h-[200px] text-sm whitespace-pre-wrap">
+                    {currentText}
+                </ScrollArea>
+            </CardContent>
+        </Card>
         <Button size="lg" className="w-full" onClick={handleNextQuestion}>
-          {currentQuestionIndex < numQuestions - 1 ? "Next Question" : "Show Results"}
+          {currentQuestionIndex < gameArticles.length - 1 ? "Next Question" : "Show Results"}
         </Button>
       </CardContent>
     </Card>
   );
+  }
 
 
   const renderResultsPhase = () => {
-    const percentage = ((score / numQuestions) * 100).toFixed(1);
+    const finalScore = score;
+    const totalQuestionsAttempted = gameArticles.length;
+    const percentage = totalQuestionsAttempted > 0 ? ((finalScore / totalQuestionsAttempted) * 100).toFixed(1) : "0.0";
+    
     let resultMessage = "";
-    if (parseFloat(percentage) >= 80) resultMessage = "Excellent job! You have a sharp eye for details.";
-    else if (parseFloat(percentage) >= 50) resultMessage = "Good effort! Keep practicing to hone your skills.";
-    else resultMessage = "No worries! Media literacy is a skill that improves with practice. Check the tips below.";
+    if (totalQuestionsAttempted === 0) {
+        resultMessage = "No questions were played. Try starting a new game!";
+    } else if (parseFloat(percentage) >= 80) {
+        resultMessage = "Excellent job! You have a sharp eye for details.";
+    } else if (parseFloat(percentage) >= 50) {
+        resultMessage = "Good effort! Keep practicing to hone your skills.";
+    } else {
+        resultMessage = "No worries! Media literacy is a skill that improves with practice. Check the tips below.";
+    }
 
     return (
     <div className="space-y-8">
@@ -267,7 +350,7 @@ export default function PlayGamePage() {
             <Award className="h-16 w-16 text-primary mb-3"/>
           <CardTitle className="text-3xl font-headline">Game Over!</CardTitle>
           <CardDescription>
-            You scored {score} out of {numQuestions} ({percentage}%).
+            You scored {finalScore} out of {totalQuestionsAttempted} ({percentage}%).
           </CardDescription>
         </CardHeader>
         <CardContent className="text-center space-y-4">
@@ -278,24 +361,28 @@ export default function PlayGamePage() {
         </CardContent>
       </Card>
 
-      <Card className="w-full max-w-xl mx-auto">
-        <CardHeader>
-            <CardTitle className="text-xl font-headline">Your Answers:</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <ul className="space-y-3 max-h-[300px] overflow-y-auto">
-                {gameArticles.map((article, index) => (
-                    <li key={index} className="p-3 border rounded-md flex justify-between items-center text-sm">
-                        <div>
-                            <span className="font-medium">Question {index + 1}:</span>
-                            <span className="ml-2 text-muted-foreground">Your guess: {article.userGuess || "N/A"}, Correct: {article.correctAnswer}</span>
-                        </div>
-                        {article.isCorrect ? <CheckCircle className="h-5 w-5 text-green-500"/> : <XCircle className="h-5 w-5 text-red-500"/>}
-                    </li>
-                ))}
-            </ul>
-        </CardContent>
-      </Card>
+      {totalQuestionsAttempted > 0 && (
+          <Card className="w-full max-w-xl mx-auto">
+            <CardHeader>
+                <CardTitle className="text-xl font-headline">Your Answers:</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <ScrollArea className="max-h-[300px]">
+                    <ul className="space-y-3">
+                        {gameArticles.map((article, index) => (
+                            <li key={index} className="p-3 border rounded-md flex justify-between items-center text-sm">
+                                <div className="flex-1 overflow-hidden">
+                                    <span className="font-medium block truncate pr-2">Q{index + 1}: {article.title}</span>
+                                    <span className="text-xs text-muted-foreground">Your guess: {article.userGuess || "N/A"}, Correct: {article.correctAnswer}</span>
+                                </div>
+                                {article.isCorrect ? <CheckCircle className="h-5 w-5 text-green-500 shrink-0"/> : <XCircle className="h-5 w-5 text-red-500 shrink-0"/>}
+                            </li>
+                        ))}
+                    </ul>
+                </ScrollArea>
+            </CardContent>
+          </Card>
+      )}
       
       <div className="max-w-xl mx-auto">
         <MediaLiteracyTipsCard />
@@ -307,9 +394,18 @@ export default function PlayGamePage() {
   return (
     <div className="space-y-8 py-8">
       {gamePhase === "setup" && renderSetupPhase()}
-      {gamePhase === "playing" && renderPlayingPhase()}
-      {gamePhase === "feedback" && renderFeedbackPhase()}
-      {gamePhase === "results" && renderResultsPhase()}
+      {isLoadingGameSetup && gamePhase === "setup" && ( // Show loader on setup screen if Start Game is clicked
+         <Card className="w-full max-w-lg mx-auto shadow-xl mt-8">
+            <CardContent className="flex flex-col items-center justify-center min-h-[200px] space-y-3">
+                <Loader2 className="h-10 w-10 animate-spin text-primary"/>
+                <p className="text-muted-foreground">Generating game articles, please wait...</p>
+            </CardContent>
+        </Card>
+      )}
+      {gamePhase === "playing" && !isLoadingGameSetup && renderPlayingPhase()}
+      {gamePhase === "feedback" && !isLoadingGameSetup && renderFeedbackPhase()}
+      {gamePhase === "results" && !isLoadingGameSetup && renderResultsPhase()}
     </div>
   );
 }
+
