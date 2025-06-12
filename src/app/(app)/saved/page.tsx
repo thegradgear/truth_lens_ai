@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArticleCard } from '@/components/shared/ArticleCard';
+import { ArticleCard, type ArticleCardProps } from '@/components/shared/ArticleCard';
 import type { Article, DetectedArticle } from '@/types';
 import { fetchUserArticles } from '@/lib/firebase';
 import { Loader2, Inbox, Search, FileText, ScanSearch } from 'lucide-react';
@@ -64,6 +64,11 @@ export default function SavedHistoryPage() {
     setFilterResult('all');
     setFilterDetectionMethod('all');
   }
+
+  const handleDeleteArticle = async (articleId: string) => {
+    setArticles(prevArticles => prevArticles.filter(article => article.id !== articleId));
+    // Toast for success is handled in ArticleCard after DB operation
+  };
 
   const filteredArticles = useMemo(() => {
     return articles
@@ -209,7 +214,11 @@ export default function SavedHistoryPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredArticles.map((article) => (
-                <ArticleCard key={article.id || article.timestamp} article={article} />
+                <ArticleCard 
+                    key={article.id || article.timestamp} 
+                    article={article} 
+                    onDelete={article.id ? handleDeleteArticle : undefined}
+                />
               ))}
             </div>
           )}

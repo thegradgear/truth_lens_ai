@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { GeneratedArticle, DetectedArticle, Article, FactCheckResult } from '@/types';
-import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download } from 'lucide-react';
+import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -17,6 +17,17 @@ import {
   DialogClose,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useRef, useEffect, useMemo } from 'react';
 import Image from 'next/image';
@@ -25,6 +36,9 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { useAuth } from '@/contexts/AuthContext';
+import { deleteArticle as deleteArticleFromDb } from '@/lib/firebase';
+
 
 const MAX_CONTENT_LINES = 6;
 
@@ -38,12 +52,24 @@ const getJustificationSummary = (fullJustification?: string): string[] => {
     .slice(0, 3); 
 };
 
-export function ArticleCard({ article, onSave, showSaveButton = false, isSaving = false }: { article: Article; onSave?: (articleToSave: Article) => Promise<void>; showSaveButton?: boolean; isSaving?: boolean; }) {
+export interface ArticleCardProps {
+  article: Article;
+  onSave?: (articleToSave: Article) => Promise<void>;
+  showSaveButton?: boolean;
+  isSaving?: boolean;
+  onDelete?: (articleId: string) => Promise<void>;
+}
+
+export function ArticleCard({ article, onSave, showSaveButton = false, isSaving = false, onDelete }: ArticleCardProps) {
+  const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showReadMoreButton, setShowReadMoreButton] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
 
   const isGenerated = article.type === 'generated';
   const articleData = article as GeneratedArticle | DetectedArticle;
@@ -71,6 +97,28 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
       } catch (error) {
         console.error("Error during onSave callback:", error);
       }
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!user?.uid || !article.id || !onDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteArticleFromDb(user.uid, article.id);
+      await onDelete(article.id); // Call parent's handler to update UI
+      toast({
+        title: "Article Removed",
+        description: "The article has been successfully removed from your history.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Removal Failed",
+        description: error.message || "Could not remove the article.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteAlertOpen(false);
     }
   };
 
@@ -244,24 +292,22 @@ ${factChecksMd.trim()}
     pdfElement.innerHTML = htmlContent;
     document.body.appendChild(pdfElement);
     
-    // Wait for images to load if any. This is a simple approach.
-    // A more robust way would be to listen to onload events of all images.
     await new Promise(resolve => setTimeout(resolve, 1000));
 
 
     try {
       const canvas = await html2canvas(pdfElement, { 
-        scale: 2, // Improve resolution
-        useCORS: true, // Important for external images
-        logging: true, // For debugging
-        backgroundColor: '#ffffff', // Explicit background
+        scale: 2, 
+        useCORS: true, 
+        logging: false, 
+        backgroundColor: '#ffffff', 
       });
       
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'pt', // points
-        format: 'a4' // A4 page size
+        unit: 'pt', 
+        format: 'a4' 
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -270,38 +316,31 @@ ${factChecksMd.trim()}
       const canvasHeight = canvas.height;
       
       const ratio = canvasWidth / canvasHeight;
-      const imgWidthInPdf = pdfWidth - 40; // 20pt margin on each side
+      const imgWidthInPdf = pdfWidth - 40; 
       const imgHeightInPdf = imgWidthInPdf / ratio;
 
-      let position = 20; // Initial y position with margin
+      let position = 20; 
       let remainingCanvasHeight = canvasHeight;
       let pageCanvasStartY = 0;
 
-      // Add pages as needed
       while (remainingCanvasHeight > 0) {
-        // Create a temporary canvas for the current page's content segment
         const pageCanvas = document.createElement('canvas');
         const pageCtx = pageCanvas.getContext('2d');
         if (!pageCtx) throw new Error("Could not get 2D context for page canvas");
 
-        // Max height of image data on one PDF page (considering margins)
         const maxContentHeightOnPage = (pdfHeight - 40) * (canvasWidth / imgWidthInPdf);
-
-        // Calculate height of the segment to draw from the main canvas
         const segmentHeightOnCanvas = Math.min(remainingCanvasHeight, maxContentHeightOnPage);
         
         pageCanvas.width = canvasWidth;
         pageCanvas.height = segmentHeightOnCanvas;
-
-        // Draw the segment from the main canvas to the page canvas
         pageCtx.drawImage(canvas, 0, pageCanvasStartY, canvasWidth, segmentHeightOnCanvas, 0, 0, canvasWidth, segmentHeightOnCanvas);
         
         const pageImgData = pageCanvas.toDataURL('image/png');
         const segmentImgHeightInPdf = imgWidthInPdf * (segmentHeightOnCanvas / canvasWidth);
 
-        if (position !== 20) { // Not the first page
+        if (position !== 20) { 
           pdf.addPage();
-          position = 20; // Reset position for new page
+          position = 20; 
         }
         
         pdf.addImage(pageImgData, 'PNG', 20, position, imgWidthInPdf, segmentImgHeightInPdf);
@@ -310,7 +349,7 @@ ${factChecksMd.trim()}
         pageCanvasStartY += segmentHeightOnCanvas;
 
         if (remainingCanvasHeight > 0) {
-           position = pdfHeight; // Prepare for next page, effectively starting from top on new page
+           position = pdfHeight; 
         }
       }
       
@@ -560,6 +599,34 @@ ${factChecksMd.trim()}
                 )}
             </Button>
             )}
+            {article.id && onDelete && user?.uid && (
+              <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="destructive" className="w-full xs:w-auto" disabled={isDeleting}>
+                    {isDeleting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="mr-2 h-4 w-4" />
+                    )}
+                    Remove
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently remove the article from your saved history.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteConfirm} disabled={isDeleting} className={buttonVariants({ variant: "destructive" })}>
+                      {isDeleting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Removing...</> : "Yes, Remove"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
              <Button onClick={handleExportPdf} size="sm" variant="outline" className="w-full xs:w-auto" disabled={isExportingPdf}>
                 {isExportingPdf ? (
                     <>
@@ -579,4 +646,12 @@ ${factChecksMd.trim()}
     </Card>
   );
 }
+
+// Helper to get buttonVariants for AlertDialogAction, since it doesn't accept variant prop directly in older shadcn versions
+// This can be simplified if your shadcn/ui version handles it.
+const buttonVariants = ({ variant }: { variant: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | null | undefined }) => {
+  if (variant === "destructive") return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
+  // Add other variants if needed
+  return "bg-primary text-primary-foreground hover:bg-primary/90"; // Default
+};
 

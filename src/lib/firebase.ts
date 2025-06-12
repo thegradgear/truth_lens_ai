@@ -18,6 +18,7 @@ import {
   orderBy, 
   doc, 
   setDoc, 
+  deleteDoc, // Added deleteDoc
   type Timestamp 
 } from 'firebase/firestore';
 import type { Article, GeneratedArticle, DetectedArticle } from '@/types';
@@ -194,5 +195,21 @@ export const fetchUserArticles = async (userId: string): Promise<Article[]> => {
   } catch (error) {
     console.error("Error fetching user articles from Firestore:", error);
     throw new Error( (error as Error).message || "Failed to fetch articles from Firestore. Check browser console for more details.");
+  }
+};
+
+export const deleteArticle = async (userId: string, articleId: string): Promise<void> => {
+  if (!userId) {
+    throw new Error("User ID is required to delete an article.");
+  }
+  if (!articleId) {
+    throw new Error("Article ID is required to delete an article.");
+  }
+  try {
+    const articleDocRef = doc(db, 'users', userId, 'articles', articleId);
+    await deleteDoc(articleDocRef);
+  } catch (error) {
+    console.error("Error deleting article from Firestore:", error);
+    throw new Error("Failed to delete article.");
   }
 };
