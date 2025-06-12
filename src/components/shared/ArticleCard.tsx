@@ -387,7 +387,12 @@ ${factChecksMd.trim()}
     article.id && onDelete && user?.uid ? (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"> {/* Adjusted size for header */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={(e) => e.stopPropagation()} // Prevent CardHeader onClick
+          >
             <MoreVertical className="h-4 w-4" />
             <span className="sr-only">Article Options</span>
           </Button>
@@ -436,7 +441,7 @@ ${factChecksMd.trim()}
       )}
       <CardHeader 
         className={cn(
-          'flex flex-row items-start justify-between', // Ensures title and menu are on opposite sides
+          'flex flex-row items-start justify-between',
           isModalOpen ? '' : 'cursor-pointer'
         )}
         onClick={!isModalOpen ? openModal : undefined}
@@ -445,16 +450,13 @@ ${factChecksMd.trim()}
         onKeyDown={(e) => { if (!isModalOpen && (e.key === 'Enter' || e.key === ' ')) openModal(); }}
         aria-label={!isModalOpen ? `View details for ${isGenerated ? (articleData as GeneratedArticle).title : 'this detected article'}`: undefined}
       >
-        <div className="flex-grow"> {/* This div will contain title and metadata and take up available space */}
+        <div className="flex-grow">
           {isGenerated ? (
             <>
-              <div className="flex items-center justify-between">
-                  <CardTitle className="font-headline text-xl flex items-center">
-                      <Bot className="mr-2 h-6 w-6 text-primary" />
-                      {(articleData as GeneratedArticle).title || 'AI Generated Article'}
-                  </CardTitle>
-                  {/* Badge was here, moved for layout flexibility, or can be kept if design allows */}
-              </div>
+              <CardTitle className="font-headline text-xl flex items-center">
+                  <Bot className="mr-2 h-6 w-6 text-primary" />
+                  {(articleData as GeneratedArticle).title || 'AI Generated Article'}
+              </CardTitle>
               <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
                   <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
                   <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Category: {(articleData as GeneratedArticle).category}</span>
@@ -463,34 +465,32 @@ ${factChecksMd.trim()}
             </>
           ) : (
             <>
-              <div className="flex items-center justify-between">
-                  <CardTitle className="font-headline text-xl flex items-center">
-                  {resultLabel === 'Real' ? 
-                      <CheckCircle className="mr-2 h-6 w-6 text-green-500" /> :
-                      <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
-                  }
-                  Detection Result
-                  </CardTitle>
-                  <TooltipProvider delayDuration={0}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                         <Badge variant={resultLabel === 'Real' ? 'default' : 'destructive'} className="ml-auto self-start"> {/* Moved badge here */}
-                          {resultLabel}
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>This article is predicted as {resultLabel} by the AI model.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-              </div>
+              <CardTitle className="font-headline text-xl flex items-center">
+              {resultLabel === 'Real' ? 
+                  <CheckCircle className="mr-2 h-6 w-6 text-green-500" /> :
+                  <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
+              }
+              Detection Result
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                     <Badge variant={resultLabel === 'Real' ? 'default' : 'destructive'} className="ml-3 self-start">
+                      {resultLabel}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>This article is predicted as {resultLabel} by the AI model.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              </CardTitle>
               <CardDescription>
                 Confidence: {confidenceScore}%
               </CardDescription>
             </>
           )}
         </div>
-        <div className="ml-2 shrink-0"> {/* ActionMenu wrapper */}
+        <div className="ml-2 shrink-0">
           <ActionMenu />
         </div>
       </CardHeader>
@@ -690,4 +690,5 @@ const buttonVariants = ({ variant }: { variant: "default" | "destructive" | "out
   if (variant === "destructive") return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
   return "bg-primary text-primary-foreground hover:bg-primary/90";
 };
+
 
