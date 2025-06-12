@@ -33,7 +33,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  // AlertDialogTrigger, // No longer needed for direct trigger
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useRef, useEffect, useMemo } from 'react';
@@ -384,6 +383,38 @@ ${factChecksMd.trim()}
 
   const justificationSummaryPoints = useMemo(() => getJustificationSummary(justification), [justification]);
 
+  const ActionMenu = () => (
+    article.id && onDelete && user?.uid ? (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"> {/* Adjusted size for header */}
+            <MoreVertical className="h-4 w-4" />
+            <span className="sr-only">Article Options</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={handleExportMarkdown} disabled={isExportingPdf || isDeleting}>
+            <Download className="mr-2 h-4 w-4" />
+            Export Markdown
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleExportPdf} disabled={isExportingPdf || isDeleting}>
+            <FileText className="mr-2 h-4 w-4" />
+            Export PDF
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => setIsDeleteAlertOpen(true)}
+            disabled={isDeleting}
+            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Remove from Saved
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ) : null
+  );
+
   return (
     <Card className="shadow-lg w-full flex flex-col overflow-hidden">
       {isGenerated && (articleData as GeneratedArticle).imageUrl && (
@@ -404,56 +435,64 @@ ${factChecksMd.trim()}
         </div>
       )}
       <CardHeader 
-        className={cn(isModalOpen ? '' : 'cursor-pointer')}
+        className={cn(
+          'flex flex-row items-start justify-between', // Ensures title and menu are on opposite sides
+          isModalOpen ? '' : 'cursor-pointer'
+        )}
         onClick={!isModalOpen ? openModal : undefined}
         role={!isModalOpen ? "button" : undefined}
         tabIndex={!isModalOpen ? 0 : undefined}
         onKeyDown={(e) => { if (!isModalOpen && (e.key === 'Enter' || e.key === ' ')) openModal(); }}
         aria-label={!isModalOpen ? `View details for ${isGenerated ? (articleData as GeneratedArticle).title : 'this detected article'}`: undefined}
       >
-        {isGenerated ? (
-          <>
-            <div className="flex items-center justify-between">
-                <CardTitle className="font-headline text-xl flex items-center">
-                    <Bot className="mr-2 h-6 w-6 text-primary" />
-                    {(articleData as GeneratedArticle).title || 'AI Generated Article'}
-                </CardTitle>
-                <Badge variant="secondary">Generated</Badge>
-            </div>
-            <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
-                <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Category: {(articleData as GeneratedArticle).category}</span>
-                <span className="flex items-center"><MessageSquareQuote className="mr-1 h-3 w-3" /> Tone: {(articleData as GeneratedArticle).tone}</span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center justify-between">
-                <CardTitle className="font-headline text-xl flex items-center">
-                {resultLabel === 'Real' ? 
-                    <CheckCircle className="mr-2 h-6 w-6 text-green-500" /> :
-                    <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
-                }
-                Detection Result
-                </CardTitle>
-                <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                       <Badge variant={resultLabel === 'Real' ? 'default' : 'destructive'}>
-                        {resultLabel}
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>This article is predicted as {resultLabel} by the AI model.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-            </div>
-            <CardDescription>
-              Confidence: {confidenceScore}%
-            </CardDescription>
-          </>
-        )}
+        <div className="flex-grow"> {/* This div will contain title and metadata and take up available space */}
+          {isGenerated ? (
+            <>
+              <div className="flex items-center justify-between">
+                  <CardTitle className="font-headline text-xl flex items-center">
+                      <Bot className="mr-2 h-6 w-6 text-primary" />
+                      {(articleData as GeneratedArticle).title || 'AI Generated Article'}
+                  </CardTitle>
+                  {/* Badge was here, moved for layout flexibility, or can be kept if design allows */}
+              </div>
+              <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                  <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
+                  <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Category: {(articleData as GeneratedArticle).category}</span>
+                  <span className="flex items-center"><MessageSquareQuote className="mr-1 h-3 w-3" /> Tone: {(articleData as GeneratedArticle).tone}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                  <CardTitle className="font-headline text-xl flex items-center">
+                  {resultLabel === 'Real' ? 
+                      <CheckCircle className="mr-2 h-6 w-6 text-green-500" /> :
+                      <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
+                  }
+                  Detection Result
+                  </CardTitle>
+                  <TooltipProvider delayDuration={0}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                         <Badge variant={resultLabel === 'Real' ? 'default' : 'destructive'} className="ml-auto self-start"> {/* Moved badge here */}
+                          {resultLabel}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>This article is predicted as {resultLabel} by the AI model.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+              </div>
+              <CardDescription>
+                Confidence: {confidenceScore}%
+              </CardDescription>
+            </>
+          )}
+        </div>
+        <div className="ml-2 shrink-0"> {/* ActionMenu wrapper */}
+          <ActionMenu />
+        </div>
       </CardHeader>
       <CardContent className="flex-grow">
         <div
@@ -604,36 +643,8 @@ ${factChecksMd.trim()}
             </Button>
             )}
             
-            {article.id && onDelete && user?.uid ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="w-full xs:w-auto">
-                    <MoreVertical className="h-4 w-4" />
-                    <span className="sr-only">Article Options</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleExportMarkdown} disabled={isExportingPdf || isDeleting}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Export Markdown
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleExportPdf} disabled={isExportingPdf || isDeleting}>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Export PDF
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => setIsDeleteAlertOpen(true)}
-                    disabled={isDeleting}
-                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Remove from Saved
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              // Render individual export buttons if not a saved article context
+            {/* Conditionally render individual export buttons if NOT a saved article context */}
+            {!(article.id && onDelete && user?.uid) && (
               <>
                 <Button onClick={handleExportPdf} size="sm" variant="outline" className="w-full xs:w-auto" disabled={isExportingPdf}>
                     {isExportingPdf ? (
@@ -654,7 +665,6 @@ ${factChecksMd.trim()}
         </div>
       </CardFooter>
 
-      {/* AlertDialog for delete confirmation - it's always in the DOM but shown/hidden by isDeleteAlertOpen state */}
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -676,11 +686,8 @@ ${factChecksMd.trim()}
   );
 }
 
-// Helper to get buttonVariants for AlertDialogAction, since it doesn't accept variant prop directly in older shadcn versions
-// This can be simplified if your shadcn/ui version handles it.
 const buttonVariants = ({ variant }: { variant: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | null | undefined }) => {
   if (variant === "destructive") return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
-  // Add other variants if needed
-  return "bg-primary text-primary-foreground hover:bg-primary/90"; // Default
+  return "bg-primary text-primary-foreground hover:bg-primary/90";
 };
 
