@@ -16,13 +16,14 @@ import {
   DialogTitle,
   DialogClose,
   DialogFooter,
+  DialogTrigger, // Added DialogTrigger
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger as DropdownMenuTriggerPrimitive, // Renamed to avoid conflict if needed
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -88,12 +89,10 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
         if (contentRef.current) {
           setShowReadMoreButton(contentRef.current.scrollHeight > contentRef.current.clientHeight);
         }
-      }, 100);
+      }, 100); // Debounce slightly for layout to settle
       return () => clearTimeout(timer);
     }
-  }, [fullText, isModalOpen]);
-
-  const openModal = () => setIsModalOpen(true);
+  }, [fullText, isModalOpen]); // isModalOpen is included because line-clamp changes clientHeight
 
   const handleSaveClick = async (event?: React.MouseEvent) => {
     event?.stopPropagation(); 
@@ -111,7 +110,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
     setIsDeleting(true);
     try {
       await deleteArticleFromDb(user.uid, article.id);
-      await onDelete(article.id); // Call parent's handler to update UI
+      await onDelete(article.id); 
       toast({
         title: "Article Removed",
         description: "The article has been successfully removed from your history.",
@@ -386,17 +385,17 @@ ${factChecksMd.trim()}
   const ActionMenu = () => (
     article.id && onDelete && user?.uid ? (
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTriggerPrimitive asChild>
           <Button
             variant="ghost"
             size="icon"
             className="h-8 w-8 shrink-0"
-            onClick={(e) => e.stopPropagation()} // Prevent CardHeader onClick
+            onClick={(e) => e.stopPropagation()} // Prevent CardHeader click propagation
           >
             <MoreVertical className="h-4 w-4" />
             <span className="sr-only">Article Options</span>
           </Button>
-        </DropdownMenuTrigger>
+        </DropdownMenuTriggerPrimitive>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={handleExportMarkdown} disabled={isExportingPdf || isDeleting}>
             <Download className="mr-2 h-4 w-4" />
@@ -424,12 +423,8 @@ ${factChecksMd.trim()}
     <Card className="shadow-lg w-full flex flex-col overflow-hidden">
       {isGenerated && (articleData as GeneratedArticle).imageUrl && (
         <div 
-          className="relative aspect-video w-full rounded-t-lg overflow-hidden border-b cursor-pointer"
-          onClick={openModal}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openModal(); }}
-          aria-label={`View details for article titled: ${(articleData as GeneratedArticle).title}`}
+          className="relative aspect-video w-full rounded-t-lg overflow-hidden border-b"
+          // Removed onClick, role, tabIndex, onKeyDown, aria-label for modal trigger
         >
           <Image 
             src={(articleData as GeneratedArticle).imageUrl!} 
@@ -440,15 +435,8 @@ ${factChecksMd.trim()}
         </div>
       )}
       <CardHeader 
-        className={cn(
-          'flex flex-row items-start justify-between',
-          isModalOpen ? '' : 'cursor-pointer'
-        )}
-        onClick={!isModalOpen ? openModal : undefined}
-        role={!isModalOpen ? "button" : undefined}
-        tabIndex={!isModalOpen ? 0 : undefined}
-        onKeyDown={(e) => { if (!isModalOpen && (e.key === 'Enter' || e.key === ' ')) openModal(); }}
-        aria-label={!isModalOpen ? `View details for ${isGenerated ? (articleData as GeneratedArticle).title : 'this detected article'}`: undefined}
+        className='flex flex-row items-start justify-between'
+        // Removed onClick, role, tabIndex, onKeyDown, aria-label for modal trigger
       >
         <div className="flex-grow">
           {isGenerated ? (
@@ -497,22 +485,25 @@ ${factChecksMd.trim()}
       <CardContent className="flex-grow">
         <div
           ref={contentRef}
-          className={`text-sm text-foreground m-0 ${isModalOpen ? '' : `line-clamp-${MAX_CONTENT_LINES}`}`}
+          className={cn(
+            'text-sm text-foreground m-0',
+            isModalOpen ? '' : `line-clamp-${MAX_CONTENT_LINES}` // Apply clamp only if modal is closed
+          )}
         >
           <p className="whitespace-pre-wrap">
             {fullText}
           </p>
         </div>
         
-        {(showReadMoreButton || isModalOpen) && (
-           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            {!isModalOpen && (
-                <DialogTrigger asChild>
-                <Button variant="link" size="sm" className="p-0 h-auto mt-2 text-primary hover:underline">
-                    <Eye className="mr-1 h-4 w-4"/>Read More / View Analysis
-                </Button>
-                </DialogTrigger>
-            )}
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          {showReadMoreButton && !isModalOpen && (
+            <DialogTrigger asChild>
+              <Button variant="link" size="sm" className="p-0 h-auto mt-2 text-primary hover:underline">
+                  <Eye className="mr-1 h-4 w-4"/>Read More / View Analysis
+              </Button>
+            </DialogTrigger>
+          )}
+          {isModalOpen && ( // DialogContent only rendered if modal is open
             <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl w-[90vw] max-h-[85vh] flex flex-col overflow-hidden">
               <DialogHeader>
                 <DialogTitle className="truncate pr-8">{modalTitle}</DialogTitle>
@@ -567,10 +558,11 @@ ${factChecksMd.trim()}
                   </DialogClose>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
-        )}
+          )}
+        </Dialog>
 
-        {!isGenerated && justificationSummaryPoints.length > 0 && !showReadMoreButton && !isModalOpen && (
+        {/* Summaries displayed only if modal is closed AND the "Read More" button isn't shown (meaning content isn't long) */}
+        {!isModalOpen && !showReadMoreButton && !isGenerated && justificationSummaryPoints.length > 0 && (
           <>
             <Separator className="my-3" />
             <div>
@@ -585,7 +577,7 @@ ${factChecksMd.trim()}
             </div>
           </>
         )}
-         {!isGenerated && factChecks && factChecks.length > 0 && !showReadMoreButton && !isModalOpen && (
+         {!isModalOpen && !showReadMoreButton && !isGenerated && factChecks && factChecks.length > 0 && (
            <>
             <Separator className="my-3" />
             <div>
@@ -643,7 +635,7 @@ ${factChecksMd.trim()}
             </Button>
             )}
             
-            {/* Conditionally render individual export buttons if NOT a saved article context */}
+            {/* Render individual export buttons ONLY if it's NOT a saved article context (no article.id, no onDelete, no user.uid) */}
             {!(article.id && onDelete && user?.uid) && (
               <>
                 <Button onClick={handleExportPdf} size="sm" variant="outline" className="w-full xs:w-auto" disabled={isExportingPdf}>
@@ -691,4 +683,4 @@ const buttonVariants = ({ variant }: { variant: "default" | "destructive" | "out
   return "bg-primary text-primary-foreground hover:bg-primary/90";
 };
 
-
+    
