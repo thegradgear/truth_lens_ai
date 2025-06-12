@@ -168,21 +168,20 @@ export default function GeneratorPage() {
         <CardHeader className="flex flex-row items-start gap-4">
           <Lightbulb className="h-8 w-8 text-primary mt-1 shrink-0" />
           <div>
-            <CardTitle className="font-headline text-xl">Understanding AI Generation</CardTitle>
-            <CardDescription className="mt-1">
-              AI-generated content (text and images) is for illustrative or educational purposes. Always apply critical thinking when reviewing or using AI-created materials.
+            <CardTitle className="font-headline text-xl">Understanding AI Generation & Ethical Use</CardTitle>
+            <CardDescription className="mt-2 space-y-2">
+                <p>
+                AI-generated content (text and images) is for illustrative or educational purposes. Always apply critical thinking when reviewing or using AI-created materials.
+                </p>
+                <div className="flex items-start gap-2 text-sm text-destructive/90 dark:text-destructive/80 border-t border-destructive/20 pt-3 mt-3">
+                  <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
+                  <p>
+                  <strong>Ethical Use Reminder:</strong> Use these generation tools responsibly. Do not create or spread misinformation. Veritas AI is intended for learning and understanding AI capabilities.
+                  </p>
+                </div>
             </CardDescription>
           </div>
         </CardHeader>
-         <CardContent className="flex flex-row items-start gap-4 border-t pt-6">
-            <AlertTriangle className="h-8 w-8 text-destructive mt-1 shrink-0" />
-            <div>
-                <h4 className="font-semibold">Ethical Use Reminder</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                Use the generation tools responsibly. Do not create or spread misinformation. Veritas AI is intended for learning and understanding AI capabilities.
-                </p>
-            </div>
-        </CardContent>
       </Card>
 
       <Card className="shadow-lg">
