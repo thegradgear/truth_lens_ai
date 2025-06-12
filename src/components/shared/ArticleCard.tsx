@@ -16,14 +16,14 @@ import {
   DialogTitle,
   DialogClose,
   DialogFooter,
-  DialogTrigger, // Added DialogTrigger
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger as DropdownMenuTriggerPrimitive, // Renamed to avoid conflict if needed
+  DropdownMenuTrigger as DropdownMenuTriggerPrimitive,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -56,7 +56,7 @@ const getJustificationSummary = (fullJustification?: string): string[] => {
     .split('\n')
     .map(item => item.trim().replace(/^[-*]\s*/, '').trim())
     .filter(s => s.length > 0)
-    .slice(0, 3); 
+    .slice(0, 3);
 };
 
 export interface ArticleCardProps {
@@ -95,7 +95,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
   }, [fullText, isModalOpen]); // isModalOpen is included because line-clamp changes clientHeight
 
   const handleSaveClick = async (event?: React.MouseEvent) => {
-    event?.stopPropagation(); 
+    event?.stopPropagation();
     if (onSave) {
       try {
         await onSave(article);
@@ -110,7 +110,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
     setIsDeleting(true);
     try {
       await deleteArticleFromDb(user.uid, article.id);
-      await onDelete(article.id); 
+      await onDelete(article.id);
       toast({
         title: "Article Removed",
         description: "The article has been successfully removed from your history.",
@@ -154,7 +154,7 @@ ${genArticle.content}
       const detArticle = articleData as DetectedArticle;
       const simpleTitle = detArticle.text.substring(0, 30).replace(/[^a-z0-9]+/g, '-').toLowerCase() || 'analysis';
       filename = `veritas-ai-detection-report-${simpleTitle}.md`;
-      
+
       let justificationMd = "";
       if (detArticle.justification) {
         justificationMd = `\n- **AI Justification:**\n`;
@@ -171,7 +171,7 @@ ${genArticle.content}
         factChecksMd = "\n- **Fact-Checks (Mock Data):**\n";
         detArticle.factChecks.forEach(fc => {
           factChecksMd += `  - **Source:** ${fc.source}\n`;
-          factChecksMd += `    - **Claim Reviewed:** ${fc.claimReviewed.replace(/\n/g, ' ')}\n`; 
+          factChecksMd += `    - **Claim Reviewed:** ${fc.claimReviewed.replace(/\n/g, ' ')}\n`;
           factChecksMd += `    - **Rating:** ${fc.rating}\n`;
           if (fc.url) {
             factChecksMd += `    - **Link:** [View Source](${fc.url})\n`;
@@ -188,7 +188,7 @@ ${detArticle.text}
 **Detection Analysis:**
 - **Type:** Detected Article
 - **Prediction:** ${detArticle.result.label} (Confidence: ${detArticle.result.confidence.toFixed(1)}%)
-- **Detection Method:** ${detArticle.detectionMethod || 'N/A'}
+- **Detection Method:** ${detArticle.detectionMethod === 'custom' ? 'Custom Model' : 'Genkit AI Model'}
 ${justificationMd.trim()}
 ${factChecksMd.trim()}
 - **Analyzed on:** ${formattedTimestamp}
@@ -223,16 +223,16 @@ ${factChecksMd.trim()}
 
     const formattedTimestamp = articleData.timestamp ? format(new Date(articleData.timestamp), "MMMM d, yyyy, h:mm a") : 'N/A';
     let filename = "veritas-ai-export.pdf";
-    
+
     const pdfElement = document.createElement('div');
     pdfElement.style.position = 'absolute';
-    pdfElement.style.left = '-9999px'; 
-    pdfElement.style.width = '800px'; 
+    pdfElement.style.left = '-9999px';
+    pdfElement.style.width = '800px';
     pdfElement.style.padding = '20px';
     pdfElement.style.fontFamily = 'Arial, sans-serif';
     pdfElement.style.fontSize = '12px';
     pdfElement.style.color = '#333';
-    pdfElement.style.backgroundColor = '#fff'; 
+    pdfElement.style.backgroundColor = '#fff';
 
     let htmlContent = '';
 
@@ -293,35 +293,35 @@ ${factChecksMd.trim()}
 
     pdfElement.innerHTML = htmlContent;
     document.body.appendChild(pdfElement);
-    
+
     await new Promise(resolve => setTimeout(resolve, 1000));
 
 
     try {
-      const canvas = await html2canvas(pdfElement, { 
-        scale: 2, 
-        useCORS: true, 
-        logging: false, 
-        backgroundColor: '#ffffff', 
+      const canvas = await html2canvas(pdfElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
       });
-      
+
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'pt', 
-        format: 'a4' 
+        unit: 'pt',
+        format: 'a4'
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
-      
+
       const ratio = canvasWidth / canvasHeight;
-      const imgWidthInPdf = pdfWidth - 40; 
+      const imgWidthInPdf = pdfWidth - 40;
       const imgHeightInPdf = imgWidthInPdf / ratio;
 
-      let position = 20; 
+      let position = 20;
       let remainingCanvasHeight = canvasHeight;
       let pageCanvasStartY = 0;
 
@@ -332,29 +332,29 @@ ${factChecksMd.trim()}
 
         const maxContentHeightOnPage = (pdfHeight - 40) * (canvasWidth / imgWidthInPdf);
         const segmentHeightOnCanvas = Math.min(remainingCanvasHeight, maxContentHeightOnPage);
-        
+
         pageCanvas.width = canvasWidth;
         pageCanvas.height = segmentHeightOnCanvas;
         pageCtx.drawImage(canvas, 0, pageCanvasStartY, canvasWidth, segmentHeightOnCanvas, 0, 0, canvasWidth, segmentHeightOnCanvas);
-        
+
         const pageImgData = pageCanvas.toDataURL('image/png');
         const segmentImgHeightInPdf = imgWidthInPdf * (segmentHeightOnCanvas / canvasWidth);
 
-        if (position !== 20) { 
+        if (position !== 20) {
           pdf.addPage();
-          position = 20; 
+          position = 20;
         }
-        
+
         pdf.addImage(pageImgData, 'PNG', 20, position, imgWidthInPdf, segmentImgHeightInPdf);
-        
+
         remainingCanvasHeight -= segmentHeightOnCanvas;
         pageCanvasStartY += segmentHeightOnCanvas;
 
         if (remainingCanvasHeight > 0) {
-           position = pdfHeight; 
+           position = pdfHeight;
         }
       }
-      
+
       pdf.save(filename);
       toast({
         title: "PDF Export Successful!",
@@ -372,7 +372,7 @@ ${factChecksMd.trim()}
       setIsExportingPdf(false);
     }
   };
-  
+
   const detectedArticleData = article.type === 'detected' ? article as DetectedArticle : null;
   const resultLabel = detectedArticleData?.result.label;
   const confidenceScore = detectedArticleData ? (detectedArticleData.result.confidence || 0).toFixed(1) : '';
@@ -390,7 +390,7 @@ ${factChecksMd.trim()}
             variant="ghost"
             size="icon"
             className="h-8 w-8 shrink-0"
-            onClick={(e) => e.stopPropagation()} // Prevent CardHeader click propagation
+            onClick={(e) => e.stopPropagation()}
           >
             <MoreVertical className="h-4 w-4" />
             <span className="sr-only">Article Options</span>
@@ -422,79 +422,80 @@ ${factChecksMd.trim()}
   return (
     <Card className="shadow-lg w-full flex flex-col overflow-hidden">
       {isGenerated && (articleData as GeneratedArticle).imageUrl && (
-        <div 
+        <div
           className="relative aspect-video w-full rounded-t-lg overflow-hidden border-b"
-          // Removed onClick, role, tabIndex, onKeyDown, aria-label for modal trigger
         >
-          <Image 
-            src={(articleData as GeneratedArticle).imageUrl!} 
-            alt={`Header for article titled: ${(articleData as GeneratedArticle).title.replace(/[^a-zA-Z0-9 ]/g, "")}`} 
-            layout="fill" 
-            objectFit="cover" 
+          <Image
+            src={(articleData as GeneratedArticle).imageUrl!}
+            alt={`Header for article titled: ${(articleData as GeneratedArticle).title.replace(/[^a-zA-Z0-9 ]/g, "")}`}
+            layout="fill"
+            objectFit="cover"
           />
         </div>
       )}
-      <CardHeader 
-        className='flex flex-row items-start justify-between'
-        // Removed onClick, role, tabIndex, onKeyDown, aria-label for modal trigger
-      >
-        <div className="flex-grow">
-          {isGenerated ? (
-            <>
-              <CardTitle className="font-headline text-xl flex items-center">
-                  <Bot className="mr-2 h-6 w-6 text-primary" />
-                  {(articleData as GeneratedArticle).title || 'AI Generated Article'}
-              </CardTitle>
-              <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                  <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
-                  <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Category: {(articleData as GeneratedArticle).category}</span>
-                  <span className="flex items-center"><MessageSquareQuote className="mr-1 h-3 w-3" /> Tone: {(articleData as GeneratedArticle).tone}</span>
-              </div>
-            </>
-          ) : (
-            <>
-              <CardTitle className="font-headline text-xl flex items-center">
-              {resultLabel === 'Real' ? 
-                  <CheckCircle className="mr-2 h-6 w-6 text-green-500" /> :
-                  <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
-              }
-              Detection Result
-              <TooltipProvider delayDuration={0}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                     <Badge variant={resultLabel === 'Real' ? 'default' : 'destructive'} className="ml-3 self-start">
-                      {resultLabel}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>This article is predicted as {resultLabel} by the AI model.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              </CardTitle>
-              <CardDescription>
-                Confidence: {confidenceScore}%
-              </CardDescription>
-            </>
-          )}
-        </div>
-        <div className="ml-2 shrink-0">
-          <ActionMenu />
-        </div>
-      </CardHeader>
+
+      {isGenerated ? (
+        <CardHeader className='flex flex-row items-start justify-between'>
+            <div className="flex-grow">
+                <CardTitle className="font-headline text-xl flex items-center">
+                    <Bot className="mr-2 h-6 w-6 text-primary" />
+                    {(articleData as GeneratedArticle).title || 'AI Generated Article'}
+                </CardTitle>
+                <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                    <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
+                    <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Category: {(articleData as GeneratedArticle).category}</span>
+                    <span className="flex items-center"><MessageSquareQuote className="mr-1 h-3 w-3" /> Tone: {(articleData as GeneratedArticle).tone}</span>
+                </div>
+            </div>
+            <div className="ml-2 shrink-0">
+                <ActionMenu />
+            </div>
+        </CardHeader>
+      ) : (
+        <CardHeader className='flex flex-row items-start justify-between gap-2'>
+            <div className="flex-grow">
+                <CardTitle className="font-headline text-xl flex items-center">
+                {resultLabel === 'Real' ?
+                    <CheckCircle className="mr-2 h-6 w-6 text-green-500" /> :
+                    <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
+                }
+                Detection Result
+                </CardTitle>
+                <CardDescription>
+                    Confidence: {confidenceScore}%
+                </CardDescription>
+            </div>
+            <div className="flex items-center space-x-2 shrink-0">
+                <TooltipProvider delayDuration={0}>
+                    <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Badge variant={resultLabel === 'Real' ? 'default' : 'destructive'}>
+                        {resultLabel}
+                        </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>This article is predicted as {resultLabel} by the AI model.</p>
+                    </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+                <ActionMenu />
+            </div>
+        </CardHeader>
+      )}
+
       <CardContent className="flex-grow">
         <div
           ref={contentRef}
           className={cn(
             'text-sm text-foreground m-0',
-            isModalOpen ? '' : `line-clamp-${MAX_CONTENT_LINES}` // Apply clamp only if modal is closed
+            isModalOpen ? '' : `line-clamp-${MAX_CONTENT_LINES}`
           )}
         >
           <p className="whitespace-pre-wrap">
             {fullText}
           </p>
         </div>
-        
+
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           {showReadMoreButton && !isModalOpen && (
             <DialogTrigger asChild>
@@ -503,7 +504,7 @@ ${factChecksMd.trim()}
               </Button>
             </DialogTrigger>
           )}
-          {isModalOpen && ( // DialogContent only rendered if modal is open
+          {isModalOpen && (
             <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl w-[90vw] max-h-[85vh] flex flex-col overflow-hidden">
               <DialogHeader>
                 <DialogTitle className="truncate pr-8">{modalTitle}</DialogTitle>
@@ -561,7 +562,6 @@ ${factChecksMd.trim()}
           )}
         </Dialog>
 
-        {/* Summaries displayed only if modal is closed AND the "Read More" button isn't shown (meaning content isn't long) */}
         {!isModalOpen && !showReadMoreButton && !isGenerated && justificationSummaryPoints.length > 0 && (
           <>
             <Separator className="my-3" />
@@ -634,8 +634,7 @@ ${factChecksMd.trim()}
                 )}
             </Button>
             )}
-            
-            {/* Render individual export buttons ONLY if it's NOT a saved article context (no article.id, no onDelete, no user.uid) */}
+
             {!(article.id && onDelete && user?.uid) && (
               <>
                 <Button onClick={handleExportPdf} size="sm" variant="outline" className="w-full xs:w-auto" disabled={isExportingPdf}>
@@ -682,5 +681,3 @@ const buttonVariants = ({ variant }: { variant: "default" | "destructive" | "out
   if (variant === "destructive") return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
   return "bg-primary text-primary-foreground hover:bg-primary/90";
 };
-
-    
