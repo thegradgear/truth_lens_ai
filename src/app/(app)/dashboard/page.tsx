@@ -32,12 +32,12 @@ export default function DashboardPage() {
                         Veritas AI is designed to help you understand how AI perceives and creates textual and visual information.
                     </p>
                      <div className="flex flex-col sm:flex-row gap-4">
-                        <Button asChild size="lg" className="flex-1 h-12">
+                        <Button asChild size="lg" className="flex-1 h-12 py-3">
                             <Link href="/generator">
                             <PenTool className="mr-2 h-5 w-5" /> Generate Article & Image
                             </Link>
                         </Button>
-                        <Button asChild variant="outline" size="lg" className="flex-1 h-12">
+                        <Button asChild variant="outline" size="lg" className="flex-1 h-12 py-3">
                             <Link href="/detector">
                             <ScanText className="mr-2 h-5 w-5" /> Detect Article
                             </Link>
