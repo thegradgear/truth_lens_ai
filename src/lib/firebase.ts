@@ -208,8 +208,11 @@ export const deleteArticle = async (userId: string, articleId: string): Promise<
   try {
     const articleDocRef = doc(db, 'users', userId, 'articles', articleId);
     await deleteDoc(articleDocRef);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error deleting article from Firestore:", error);
-    throw new Error("Failed to delete article.");
+    if (error.code === 'permission-denied') {
+      throw new Error("Failed to delete article due to insufficient permissions. Please check your Firestore security rules to ensure users can delete their own articles.");
+    }
+    throw new Error("Failed to delete article. " + (error.message || "An unknown error occurred."));
   }
 };
