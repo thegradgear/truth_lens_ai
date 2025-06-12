@@ -77,6 +77,9 @@ export const signInWithEmailAndPassword = async (email?: string, password?: stri
      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-email') {
        throw new Error("Invalid credentials. Please check your email and password, or sign up if you don't have an account.");
      }
+     if (error.code === 'auth/visibility-check-was-unavailable') {
+      throw new Error("Login verification unavailable. This might be due to browser settings (like third-party cookie blocking) or a network issue. Please try again. If it persists, check your browser settings or try another browser.");
+    }
      console.error("Unexpected Firebase sign in error:", error);
      throw new Error(error.message || "An unexpected error occurred during sign in. Please try again.");
   }
