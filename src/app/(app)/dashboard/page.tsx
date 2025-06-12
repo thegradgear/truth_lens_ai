@@ -4,7 +4,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PenTool, ScanText, Bookmark, Lightbulb, AlertTriangle, Image as ImageIconLucide } from 'lucide-react';
+import { PenTool, ScanText, Bookmark, Lightbulb, Puzzle, Image as ImageIconLucide } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MediaLiteracyTipsCard } from '@/components/dashboard/MediaLiteracyTipsCard';
@@ -20,16 +20,14 @@ export default function DashboardPage() {
             Welcome to Veritas AI, {user?.displayName || user?.email || 'User'}!
           </CardTitle>
           <CardDescription className="text-lg text-muted-foreground">
-            Your central hub for generating and detecting news articles with the power of AI.
-            Navigate the information landscape with greater clarity and insight.
+            Your central hub for generating articles with images, detecting news authenticity, and playing our media literacy game. Navigate the information landscape with greater clarity and insight.
           </CardDescription>
         </CardHeader>
         <CardContent>
             <div className="grid md:grid-cols-2 gap-6 items-center">
                 <div>
                     <p className="mb-6 text-muted-foreground">
-                        Ready to dive in? Choose an action below to get started, or explore your saved history.
-                        Veritas AI is designed to help you understand how AI perceives and creates textual and visual information.
+                        Ready to dive in? Choose an action below to get started, explore your saved history, or test your skills with our game. Veritas AI is designed to help you understand how AI perceives and creates information.
                     </p>
                      <div className="flex flex-col sm:flex-row gap-4">
                         <Button asChild size="lg" className="flex-1 h-12 py-3">
@@ -85,7 +83,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold font-headline">Analyze & Verify</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Paste any news article to assess its authenticity using our AI model.
+              Paste any news article to assess its authenticity using our dual AI models (Custom & Genkit LLM).
             </p>
             <Button variant="link" asChild className="px-0 mt-2">
               <Link href="/detector">Go to Detector &rarr;</Link>
@@ -109,9 +107,28 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      <MediaLiteracyTipsCard />
+      
+      <div className="grid md:grid-cols-2 gap-6">
+        <MediaLiteracyTipsCard />
+        
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Media Literacy Game</CardTitle>
+            <Puzzle className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold font-headline">Test Your Skills</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Play 'Guess Real or Fake?' to sharpen your ability to identify misleading information.
+            </p>
+            <Button variant="link" asChild className="px-0 mt-2">
+              <Link href="/playgame">Play Game &rarr;</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
     </div>
   );
 }
+

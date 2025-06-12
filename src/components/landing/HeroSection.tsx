@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { ArrowRight, CheckCircle } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export function HeroSection() {
   return (
@@ -15,7 +15,7 @@ export function HeroSection() {
               <span className="block text-primary">With Veritas AI.</span>
             </h1>
             <p className="text-lg text-muted-foreground md:text-xl">
-              Empower yourself with cutting-edge AI tools to detect fake news and explore AI-generated narratives. Navigate the information age with confidence.
+              Empower yourself with cutting-edge AI tools to detect fake news, generate articles with images, and test your media literacy in our interactive game. Navigate the information age with confidence.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button size="lg" asChild className="shadow-lg hover:shadow-primary/30 transition-shadow">
@@ -30,18 +30,6 @@ export function HeroSection() {
                 </Link>
               </Button>
             </div>
-            {/* The following div containing AI-Powered Detection and Creative Generation texts is removed
-            <div className="mt-6 flex space-x-6">
-              <div className="flex items-center text-sm text-muted-foreground">
-                <CheckCircle className="mr-2 h-5 w-5 text-green-500" />
-                AI-Powered Detection
-              </div>
-              <div className="flex items-center text-sm text-muted-foreground">
-                <CheckCircle className="mr-2 h-5 w-5 text-green-500" />
-                Creative Generation
-              </div>
-            </div>
-            */}
           </div>
           <div className="relative aspect-video rounded-xl overflow-hidden shadow-2xl group">
              <Image
@@ -63,3 +51,4 @@ export function HeroSection() {
     </section>
   );
 }
+

@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -10,7 +11,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   title: 'Veritas AI - Fake News Detection & Generation',
-  description: 'An AI-powered platform to generate and detect fake news articles, built with Next.js, Firebase, and Gemini.',
+  description: 'Explore AI with Veritas: Detect fake news, generate articles & images, and test your skills with our interactive game. Built with Next.js, Firebase, and Genkit.',
   icons: {
     icon: '/favicon.ico', // Assuming a favicon might be added later
   }
@@ -46,3 +47,4 @@ export default function RootLayout({
     </html>
   );
 }
+

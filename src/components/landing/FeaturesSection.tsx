@@ -1,12 +1,12 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ScanText, BotMessageSquare, UserCheck, ShieldCheck, BrainCircuit, ListChecks, Image as ImageIcon } from 'lucide-react';
+import { ScanText, BotMessageSquare, UserCheck, ShieldCheck, BrainCircuit, ListChecks, Image as ImageIcon, Puzzle } from 'lucide-react';
 
 const features = [
   {
     icon: <ScanText className="h-10 w-10 text-primary" />,
-    title: "Fake News Detector",
-    description: "Paste any news article and our AI will analyze its likelihood of being fake, providing a confidence score.",
+    title: "Dual AI News Detection",
+    description: "Analyze articles using our custom ML model or an advanced Genkit AI model (with XAI & mock fact-checking) to get a confidence score on authenticity.",
   },
   {
     icon: <BotMessageSquare className="h-10 w-10 text-primary" />,
@@ -14,24 +14,24 @@ const features = [
     description: "Explore AI's creative potential. Generate articles on various topics, categories, and tones, complete with an automatically AI-generated header image.",
   },
   {
+    icon: <Puzzle className="h-10 w-10 text-primary" />,
+    title: "Interactive 'Guess Real or Fake' Game",
+    description: "Test and improve your media literacy skills in an engaging gamified environment by guessing if AI-presented articles are real or fake.",
+  },
+  {
     icon: <UserCheck className="h-10 w-10 text-primary" />,
-    title: "User Authentication",
-    description: "Secure sign-up, login, and logout functionality to protect your data and history.",
+    title: "User Authentication & Profile",
+    description: "Secure sign-up, login, and profile management to protect your data and history.",
   },
   {
     icon: <ListChecks className="h-10 w-10 text-primary" />,
     title: "Saved History",
-    description: "Keep track of all your generated and detected articles, including their images, accessible anytime.",
-  },
-  {
-    icon: <BrainCircuit className="h-10 w-10 text-primary" />,
-    title: "Custom ML Model",
-    description: "Our detector is powered by a custom-trained machine learning model for nuanced analysis.",
+    description: "Keep track of all your generated articles (with images) and detected articles (with analysis), accessible anytime.",
   },
   {
     icon: <ShieldCheck className="h-10 w-10 text-primary" />,
     title: "Ethical AI Focus",
-    description: "We are committed to responsible AI development and promoting media literacy.",
+    description: "We are committed to responsible AI development and promoting media literacy through transparent tools.",
   },
 ];
 
@@ -42,7 +42,7 @@ export function FeaturesSection() {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">Powerful Features at Your Fingertips</h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Veritas AI offers a suite of tools to help you navigate the complex world of information, including AI-driven content and image generation.
+            Veritas AI offers a suite of tools to help you navigate the complex world of information, including AI-driven content generation, analysis, and interactive learning.
           </p>
         </div>
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -64,3 +64,4 @@ export function FeaturesSection() {
     </section>
   );
 }
+

@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lightbulb, Target, Users } from 'lucide-react';
 import Image from 'next/image';
@@ -21,7 +22,7 @@ export function AboutSection() {
               <CardTitle className="font-headline text-xl">Our Mission</CardTitle>
             </CardHeader>
             <CardContent className="text-center text-muted-foreground">
-              To provide accessible and powerful AI tools that help users discern truth from misinformation, and understand the nuances of AI-generated content.
+              To provide accessible and powerful AI tools that help users discern truth from misinformation, understand the nuances of AI-generated content, and enhance media literacy through interactive experiences.
             </CardContent>
           </Card>
           <Card className="shadow-lg hover:shadow-xl transition-shadow">
@@ -51,16 +52,20 @@ export function AboutSection() {
             <div>
                 <h3 className="text-2xl font-bold tracking-tight sm:text-3xl font-headline mb-4">Why Veritas AI?</h3>
                 <p className="text-muted-foreground mb-4">
-                    In an era of information overload, distinguishing credible news from fabricated stories is more challenging than ever. Veritas AI leverages state-of-the-art artificial intelligence to provide you with tools for both critical analysis and creative exploration.
+                    In an era of information overload, distinguishing credible news from fabricated stories is more challenging than ever. Veritas AI leverages state-of-the-art artificial intelligence to provide you with tools for critical analysis, creative exploration, and skill development.
                 </p>
                 <ul className="space-y-2 text-muted-foreground">
                     <li className="flex items-start">
                         <CheckIcon className="h-5 w-5 text-primary mr-2 mt-1 shrink-0" />
-                        <span><strong>Advanced Detection:</strong> Utilize our ML model trained on vast datasets to identify potential fake news.</span>
+                        <span><strong>Advanced Detection:</strong> Utilize our custom ML model and a Genkit-powered LLM (with XAI & mock fact-checking) to analyze news articles.</span>
                     </li>
                     <li className="flex items-start">
                         <CheckIcon className="h-5 w-5 text-primary mr-2 mt-1 shrink-0" />
                         <span><strong>Ethical Generation:</strong> Explore how AI can craft narratives and accompanying visuals for educational and creative purposes.</span>
+                    </li>
+                     <li className="flex items-start">
+                        <CheckIcon className="h-5 w-5 text-primary mr-2 mt-1 shrink-0" />
+                        <span><strong>Interactive Learning:</strong> Sharpen your media literacy skills with our engaging 'Guess Real or Fake' game.</span>
                     </li>
                     <li className="flex items-start">
                         <CheckIcon className="h-5 w-5 text-primary mr-2 mt-1 shrink-0" />
@@ -101,3 +106,4 @@ function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
+
