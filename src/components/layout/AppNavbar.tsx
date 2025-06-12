@@ -30,6 +30,13 @@ import {
   Menu,
   Puzzle,
 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -41,7 +48,6 @@ const navItems = [
 
 const userMenuItems = [
     { href: '/profile', label: 'Profile', icon: UserCircle },
-    // { href: '/settings', label: 'Settings', icon: SettingsIcon }, // Settings link removed
 ];
 
 export function AppNavbar() {
@@ -76,7 +82,7 @@ export function AppNavbar() {
             asChild
             className={cn(
               'justify-start w-full text-left',
-              mobile ? 'text-base py-3' : 'text-sm'
+              mobile ? 'text-base py-3' : 'text-sm' 
             )}
           >
             <Link href={item.href}>
@@ -139,12 +145,14 @@ export function AppNavbar() {
           <Logo />
         </div>
 
-        <nav className="hidden md:flex items-center space-x-1 mx-auto">
+        {/* Navigation for large screens (lg and up) */}
+        <nav className="hidden lg:flex items-center space-x-1 mx-auto">
           <NavLinks />
         </nav>
-
+        
         <div className="flex items-center space-x-2 md:space-x-3 ml-auto md:ml-0">
-          <div className="hidden md:block">
+           {/* ThemeToggle visible on lg and up here, or handled in sidebar for smaller */}
+          <div className="hidden lg:block">
             <ThemeToggle align="end"/>
           </div>
           
@@ -183,7 +191,8 @@ export function AppNavbar() {
             </Button>
           )}
 
-          <div className="md:hidden">
+          {/* Hamburger menu for screens smaller than lg (i.e., sm and md) */}
+          <div className="lg:hidden">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -224,3 +233,4 @@ export function AppNavbar() {
     </header>
   );
 }
+
