@@ -78,11 +78,13 @@ export function AppNavbar() {
         const isActive = pathname === item.href;
         const linkButton = (
           <Button
+            key={item.href} // Added key here
             variant={isActive ? "default" : "ghost"}
             asChild
             className={cn(
-              'justify-start w-full text-left',
-              mobile ? 'text-base py-3' : 'text-sm' 
+              'justify-start w-full text-left', // Default for mobile/sidebar
+              mobile ? 'text-base py-3' : 'text-sm', // Mobile specific styles
+              !mobile && 'w-auto px-3' // Desktop specific styles
             )}
           >
             <Link href={item.href}>
@@ -92,9 +94,9 @@ export function AppNavbar() {
           </Button>
         );
         if (mobile) {
-          return <SheetClose asChild key={item.href}>{linkButton}</SheetClose>;
+          return <SheetClose asChild key={`${item.href}-mobile`}>{linkButton}</SheetClose>;
         }
-        return <React.Fragment key={item.href}>{linkButton}</React.Fragment>;
+        return linkButton; // Directly return for desktop
       })}
     </>
   );
@@ -150,8 +152,8 @@ export function AppNavbar() {
           <NavLinks />
         </nav>
         
-        <div className="flex items-center space-x-2 md:space-x-3 ml-auto md:ml-0">
-           {/* ThemeToggle visible on lg and up here, or handled in sidebar for smaller */}
+        <div className="flex items-center space-x-2 md:space-x-3 ml-auto">
+           {/* ThemeToggle visible on lg and up here */}
           <div className="hidden lg:block">
             <ThemeToggle align="end"/>
           </div>
@@ -207,9 +209,10 @@ export function AppNavbar() {
                 </div>
                 <nav className="flex flex-col space-y-1 px-2 flex-grow">
                   <NavLinks mobile />
-                  {userMenuItems.length > 0 && <Separator className="my-2" />}
-                  <UserMenuItems mobile />
-                   <Separator className="my-2" />
+                  {userMenuItems.length > 0 && user && <Separator className="my-2" />}
+                  {user && <UserMenuItems mobile /> }
+                   { user && <Separator className="my-2" />}
+                   {user && (
                     <SheetClose asChild>
                         <Button
                             variant="ghost"
@@ -220,6 +223,7 @@ export function AppNavbar() {
                             Sign Out
                         </Button>
                     </SheetClose>
+                   )}
                 </nav>
                 <Separator className="my-2" />
                 <div className="pb-4">
