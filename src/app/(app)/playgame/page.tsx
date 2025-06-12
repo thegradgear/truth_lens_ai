@@ -370,29 +370,6 @@ export default function PlayGamePage() {
             </div>
         </CardContent>
       </Card>
-
-      {totalQuestionsAttempted > 0 && (
-          <Card className="w-full max-w-xl mx-auto">
-            <CardHeader>
-                <CardTitle className="text-xl font-headline">Your Answers:</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <ScrollArea className="max-h-[300px]">
-                    <ul className="space-y-3">
-                        {gameArticles.map((article, index) => (
-                            <li key={index} className="p-3 border rounded-md flex justify-between items-center text-sm">
-                                <div className="flex-1 overflow-hidden">
-                                    <span className="font-medium block truncate pr-2" title={article.title}>Q{index + 1}: {article.title}</span>
-                                    <span className="text-xs text-muted-foreground">Your guess: {article.userGuess || "N/A"}, Correct: {article.correctAnswer}</span>
-                                </div>
-                                {article.isCorrect ? <CheckCircle className="h-5 w-5 text-green-500 shrink-0"/> : <XCircle className="h-5 w-5 text-red-500 shrink-0"/>}
-                            </li>
-                        ))}
-                    </ul>
-                </ScrollArea>
-            </CardContent>
-          </Card>
-      )}
       
       <div className="max-w-xl mx-auto">
         <MediaLiteracyTipsCard />
