@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PenTool, ScanText, Bookmark, Lightbulb, AlertTriangle, Image as ImageIconLucide } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { MediaLiteracyTipsCard } from '@/components/dashboard/MediaLiteracyTipsCard';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -128,6 +130,9 @@ export default function DashboardPage() {
             </div>
         </CardContent>
       </Card>
+
+      <MediaLiteracyTipsCard />
+
     </div>
   );
 }
