@@ -22,17 +22,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useRef, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 const MAX_CONTENT_LINES = 6;
 
 // Helper function to process justification for summary display
 const getJustificationSummary = (fullJustification?: string): string[] => {
   if (!fullJustification) return [];
+  // Split by newline, remove bullet-like prefixes, trim, filter empty, take first 2-3
   return fullJustification
     .split('\n')
-    .map(item => item.trim().replace(/^[-*]\s*/, '').trim()) // Remove bullet markers and trim
+    .map(item => item.trim().replace(/^[-*]\s*/, '').trim())
     .filter(s => s.length > 0)
-    .slice(0, 3); // Take first 2-3 points
+    .slice(0, 3); // Ensure 2-3 points for summary
 };
 
 export function ArticleCard({ article, onSave, showSaveButton = false, isSaving = false }: { article: Article; onSave?: (articleToSave: Article) => Promise<void>; showSaveButton?: boolean; isSaving?: boolean; }) {
@@ -47,7 +49,6 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
 
   useEffect(() => {
     if (contentRef.current) {
-      // A slight delay to ensure contentRef has its final dimensions after render
       const timer = setTimeout(() => {
         if (contentRef.current) {
           setShowReadMoreButton(contentRef.current.scrollHeight > contentRef.current.clientHeight);
@@ -55,9 +56,12 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [fullText, isModalOpen]); // Re-check if modal closes, as content might re-clamp
+  }, [fullText, isModalOpen]);
 
-  const handleSaveClick = async () => {
+  const openModal = () => setIsModalOpen(true);
+
+  const handleSaveClick = async (event?: React.MouseEvent) => {
+    event?.stopPropagation(); // Prevent modal from opening if card is also clickable
     if (onSave) {
       try {
         await onSave(article);
@@ -79,7 +83,14 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
   return (
     <Card className="shadow-lg w-full flex flex-col">
       {isGenerated && (articleData as GeneratedArticle).imageUrl && (
-        <div className="relative aspect-video w-full rounded-t-lg overflow-hidden border-b">
+        <div 
+          className="relative aspect-video w-full rounded-t-lg overflow-hidden border-b cursor-pointer"
+          onClick={openModal}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openModal(); }}
+          aria-label={`View details for article titled: ${(articleData as GeneratedArticle).title}`}
+        >
           <Image 
             src={(articleData as GeneratedArticle).imageUrl!} 
             alt={`Header for article titled: ${(articleData as GeneratedArticle).title}`} 
@@ -88,7 +99,14 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
           />
         </div>
       )}
-      <CardHeader>
+      <CardHeader 
+        className={cn(isModalOpen ? '' : 'cursor-pointer')}
+        onClick={!isModalOpen ? openModal : undefined} // Only make clickable if modal not already open via button
+        role={!isModalOpen ? "button" : undefined}
+        tabIndex={!isModalOpen ? 0 : undefined}
+        onKeyDown={(e) => { if (!isModalOpen && (e.key === 'Enter' || e.key === ' ')) openModal(); }}
+        aria-label={!isModalOpen ? `View details for ${isGenerated ? (articleData as GeneratedArticle).title : 'this detected article'}`: undefined}
+      >
         {isGenerated ? (
           <>
             <div className="flex items-center justify-between">
@@ -214,10 +232,10 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
             <Separator className="my-3" />
             <div>
                 <h4 className="font-semibold text-sm mb-1 flex items-center"><FileText className="mr-2 h-4 w-4 text-primary/80"/>AI Justification (Summary):</h4>
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                     {justificationSummaryPoints.map((point, index) => (
-                        <p key={index} className="text-xs text-muted-foreground truncate">
-                            &bull; {point}
+                        <p key={index} className="text-xs text-muted-foreground flex items-start">
+                           <span className="mr-1.5 mt-0.5">&bull;</span><span className="flex-1">{point}</span>
                         </p>
                     ))}
                 </div>
@@ -268,7 +286,7 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
           )}
         </div>
         {showSaveButton && onSave && (
-          <Button onClick={handleSaveClick} size="sm" variant="outline" disabled={isSaving} className="w-full xs:w-auto mt-2 xs:mt-0 shrink-0">
+          <Button onClick={(e) => handleSaveClick(e)} size="sm" variant="outline" disabled={isSaving} className="w-full xs:w-auto mt-2 xs:mt-0 shrink-0">
             {isSaving ? (
                 <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
