@@ -5,101 +5,103 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%; /* Lighter, cleaner gray: #F5F7FA */
-    --foreground: 220 25% 25%; /* Darker gray-blue for text: #334155 */
+    /* Light Theme from User Palette */
+    --background: 20 27% 96%; /* #F7F4F3 */
+    --foreground: 0 0% 18%; /* #2D2D2D (Text Primary) */
 
-    --muted: 220 15% 88%; /* Softer gray for muted elements */
-    --muted-foreground: 220 10% 45%; /* Slightly darker muted text */
+    --muted: 0 0% 42%; /* #6B6B6B (Text Secondary) */
+    --muted-foreground: 0 0% 42%; /* #6B6B6B (Text Secondary - can be slightly darker if needed, but using same for now) */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 25%;
+    --popover: 0 0% 100%; /* #FFFFFF (Surface / Cards) */
+    --popover-foreground: 0 0% 18%; /* #2D2D2D (Text Primary) */
 
-    --card: 0 0% 100%; /* White cards */
-    --card-foreground: 220 25% 25%;
+    --card: 0 0% 100%; /* #FFFFFF (Surface / Cards) */
+    --card-foreground: 0 0% 18%; /* #2D2D2D (Text Primary) */
 
-    --border: 220 15% 90%; /* Slightly darker border: #E0E7EF */
-    --input: 220 15% 94%; /* Lighter input background: #EDF1F5 */
+    --border: 30 7% 87%; /* #E0DEDC */
+    --input: 30 10% 93%; /* Derived from Background/Border for light theme, e.g. #ECEBEA */
 
-    --primary: 217 90% 59%; /* Vibrant Blue (Tailwind Blue 500 like): #3B82F6 */
-    --primary-foreground: 210 40% 98%; /* Almost white */
+    --primary: 345 44% 25%; /* #5B2333 */
+    --primary-foreground: 0 0% 98%; /* #FAFAFA, for contrast on dark primary */
 
-    --secondary: 220 15% 94%; /* Light gray for secondary elements */
-    --secondary-foreground: 217 90% 59%; /* Primary blue text on secondary */
+    --secondary: 345 47% 50%; /* #B84A62 (Accent Light) */
+    --secondary-foreground: 0 0% 98%; /* #FAFAFA, for contrast on Accent Light */
 
-    --accent: 210 85% 55%; /* New: Distinct, complementary blue */
-    --accent-foreground: 0 0% 100%; /* White, for good contrast on the new blue accent */
+    --accent: 345 47% 50%; /* #B84A62 */
+    --accent-foreground: 0 0% 98%; /* #FAFAFA, for contrast on Accent Light */
 
-    --destructive: 0 84% 60%; /* Tailwind Red 500: #EF4444 */
-    --destructive-foreground: 0 0% 98%; /* Almost white */
+    --destructive: 3 70% 50%; /* #D93025 (Error) */
+    --destructive-foreground: 0 0% 98%; /* #FAFAFA */
 
-    --ring: 217 90% 59%; /* Primary blue for ring */
+    --ring: 345 44% 25%; /* Primary for ring */
 
-    --radius: 0.5rem;
+    --radius: 0.75rem; /* Updated from 0.5rem to 12px */
 
-    /* Updated Chart Colors */
-    --chart-1: 217 90% 59%; /* Primary */
-    --chart-2: 210 85% 55%; /* New Accent Blue */
-    --chart-3: 30 90% 55%; /* Orange */
-    --chart-4: 260 80% 65%; /* Purple */
-    --chart-5: 50 95% 50%; /* Yellow */
+    /* Chart Colors - Light Theme */
+    --chart-1: 345 44% 25%; /* Primary Light: #5B2333 */
+    --chart-2: 345 47% 50%; /* Accent Light: #B84A62 */
+    --chart-3: 146 48% 42%; /* Success Light: #3BA55D */
+    --chart-4: 43 100% 48%; /* Warning Light: #F4B400 */
+    --chart-5: 345 40% 70%; /* Lighter variant of Accent/Primary */
 
-    /* Sidebar specific colors - aligned with card for light theme */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 25% 25%;
-    --sidebar-primary: 217 90% 59%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 210 85% 55%; /* New: Sidebar accent blue */
-    --sidebar-accent-foreground: 0 0% 100%; /* White */
-    --sidebar-border: 220 15% 90%;
-    --sidebar-ring: 210 85% 55%; /* New: Sidebar ring blue */
+    /* Sidebar specific colors - Light Theme */
+    --sidebar-background: 0 0% 100%; /* Align with --card */
+    --sidebar-foreground: 0 0% 18%; /* Align with --card-foreground */
+    --sidebar-primary: 345 44% 25%; /* Align with --primary */
+    --sidebar-primary-foreground: 0 0% 98%; /* Align with --primary-foreground */
+    --sidebar-accent: 345 47% 50%; /* Align with --accent */
+    --sidebar-accent-foreground: 0 0% 98%; /* Align with --accent-foreground */
+    --sidebar-border: 30 7% 87%; /* Align with --border */
+    --sidebar-ring: 345 47% 50%; /* Align with --accent for ring */
   }
 
   .dark {
-    --background: 222 45% 10%; /* Dark desaturated blue-gray: #0F172A */
-    --foreground: 215 25% 85%; /* Light gray for text: #CAD4E0 */
+    /* Dark Theme from User Palette */
+    --background: 338 29% 8%; /* #1A0D13 */
+    --foreground: 20 27% 96%; /* #F7F4F3 (Text Primary Dark) */
 
-    --muted: 222 30% 20%; /* Darker muted */
-    --muted-foreground: 215 20% 60%; /* Lighter muted text */
+    --muted: 330 14% 72%; /* #BFAEB4 (Text Secondary Dark) */
+    --muted-foreground: 330 14% 72%; /* #BFAEB4 (Text Secondary Dark) */
 
-    --popover: 222 40% 13%; /* Darker popover */
-    --popover-foreground: 215 25% 85%;
+    --popover: 330 28% 14%; /* #2C1A23 (Surface / Cards Dark) */
+    --popover-foreground: 20 27% 96%; /* #F7F4F3 (Text Primary Dark) */
 
-    --card: 222 40% 13%; /* Slightly lighter than background: #161E2D */
-    --card-foreground: 215 25% 85%;
+    --card: 330 28% 14%; /* #2C1A23 (Surface / Cards Dark) */
+    --card-foreground: 20 27% 96%; /* #F7F4F3 (Text Primary Dark) */
 
-    --border: 222 30% 25%; /* Darker border: #2C374A */
-    --input: 222 30% 22%; /* Darker input background: #253041 */
+    --border: 330 20% 20%; /* #3E2A33 */
+    --input: 330 25% 12%; /* Derived from Background/Border for dark theme, e.g. #25151E */
 
-    --primary: 217 90% 63%; /* Slightly lighter blue for dark mode: #4B92F7 */
-    --primary-foreground: 210 40% 98%;
+    --primary: 20 27% 96%; /* #F7F4F3 (Primary Dark) */
+    --primary-foreground: 0 0% 10%; /* #1A1A1A, for contrast on light primary */
 
-    --secondary: 222 30% 20%; /* Darker secondary */
-    --secondary-foreground: 217 90% 63%; /* Primary blue text on secondary */
+    --secondary: 343 50% 66%; /* #D97B8F (Accent Dark) */
+    --secondary-foreground: 0 0% 10%; /* #1A1A1A, for contrast on Accent Dark */
 
-    --accent: 210 85% 60%; /* New: Distinct, complementary blue for dark mode */
-    --accent-foreground: 210 40% 98%; /* Light text for contrast on the new dark blue accent */
+    --accent: 343 50% 66%; /* #D97B8F */
+    --accent-foreground: 0 0% 10%; /* #1A1A1A, for contrast on Accent Dark */
 
-    --destructive: 0 72% 51%; /* Tailwind Red 600: #DC2626 */
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 3 70% 50%; /* #D93025 (Error) */
+    --destructive-foreground: 0 0% 98%; /* #FAFAFA */
 
-    --ring: 217 90% 63%; /* Primary blue for ring */
+    --ring: 20 27% 96%; /* Primary Dark for ring */
     
-    /* Updated Chart Colors for Dark Mode */
-    --chart-1: 217 90% 63%;
-    --chart-2: 210 85% 60%; /* New Accent Blue */
-    --chart-3: 30 85% 60%;
-    --chart-4: 260 75% 70%;
-    --chart-5: 50 90% 55%;
+    /* Chart Colors - Dark Theme */
+    --chart-1: 20 27% 96%; /* Primary Dark: #F7F4F3 */
+    --chart-2: 343 50% 66%; /* Accent Dark: #D97B8F */
+    --chart-3: 145 52% 59%; /* Success Dark: #5DC983 */
+    --chart-4: 47 100% 70%; /* Warning Dark: #FFD966 */
+    --chart-5: 343 45% 80%; /* Lighter variant of Accent Dark */
 
-    /* Sidebar specific colors - aligned with card for dark theme */
-    --sidebar-background: 222 40% 13%;
-    --sidebar-foreground: 215 25% 85%;
-    --sidebar-primary: 217 90% 63%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 210 85% 60%; /* New: Sidebar accent blue for dark mode */
-    --sidebar-accent-foreground: 210 40% 98%; /* Light text */
-    --sidebar-border: 222 30% 25%;
-    --sidebar-ring: 210 85% 60%; /* New: Sidebar ring blue for dark mode */
+    /* Sidebar specific colors - Dark Theme */
+    --sidebar-background: 330 28% 14%; /* Align with --card */
+    --sidebar-foreground: 20 27% 96%; /* Align with --card-foreground */
+    --sidebar-primary: 20 27% 96%; /* Align with --primary */
+    --sidebar-primary-foreground: 0 0% 10%; /* Align with --primary-foreground */
+    --sidebar-accent: 343 50% 66%; /* Align with --accent */
+    --sidebar-accent-foreground: 0 0% 10%; /* Align with --accent-foreground */
+    --sidebar-border: 330 20% 20%; /* Align with --border */
+    --sidebar-ring: 343 50% 66%; /* Align with --accent for ring */
   }
 }
 
