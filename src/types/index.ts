@@ -14,8 +14,15 @@ export interface GeneratedArticle {
   topic: string;
   category: string;
   tone: string;
-  timestamp: string; 
-  imageUrl?: string; // Changed from imageDataUri to imageUrl (Cloudinary URL)
+  timestamp: string;
+  imageUrl?: string;
+}
+
+export interface FactCheckResult {
+  source: string;
+  claimReviewed: string;
+  rating: string;
+  url?: string;
 }
 
 export interface DetectedArticle {
@@ -28,7 +35,10 @@ export interface DetectedArticle {
     confidence: number;
   };
   timestamp: string;
-  detectionMethod?: 'custom' | 'llm'; 
+  detectionMethod?: 'custom' | 'llm';
+  justification?: string; // Added for XAI
+  factChecks?: FactCheckResult[]; // Added for external fact-checking
 }
 
 export type Article = GeneratedArticle | DetectedArticle;
+

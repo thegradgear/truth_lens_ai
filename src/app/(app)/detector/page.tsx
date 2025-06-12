@@ -20,7 +20,7 @@ import { saveArticle } from '@/lib/firebase';
 import { Loader2, ScanSearch, Save, Brain, Database } from 'lucide-react';
 
 const detectorFormSchema = z.object({
-  articleText: z.string().min(50, { message: "Article text must be at least 50 characters." }).max(5000, {message: "Article text must be at most 5000 characters."}),
+  articleText: z.string().min(50, { message: "Article text must be at least 50 characters." }).max(10000, {message: "Article text must be at most 10000 characters."}), // Increased max length
   detectionMethod: z.enum(['custom', 'llm'], { required_error: "Please select a detection method." }),
 });
 
@@ -50,7 +50,7 @@ export default function DetectorPage() {
 
     try {
       let result: DetectFakeNewsOutput | LlmDetectFakeNewsOutput;
-      const modelName = data.detectionMethod === 'custom' ? "Your Custom Model" : "Genkit AI Model";
+      const modelName = data.detectionMethod === 'custom' ? "Your Custom Model" : "Genkit AI Model (with XAI & Mock Fact-Check)";
 
       if (data.detectionMethod === 'custom') {
         const input: DetectFakeNewsInput = { articleText: data.articleText };
@@ -70,15 +70,18 @@ export default function DetectorPage() {
           },
           timestamp: new Date().toISOString(),
           userId: user?.uid,
-          detectionMethod: data.detectionMethod, // Store which method was used
+          detectionMethod: data.detectionMethod,
+          justification: result.justification, // Pass justification
+          factChecks: result.factChecks, // Pass fact-checks
         };
         setDetectionResult(newDetection);
         toast({
           title: "Detection Complete!",
-          description: `Using ${modelName}, the article is predicted as ${result.label.toLowerCase()} with ${result.confidence.toFixed(1)}% confidence.`,
+          description: `Using ${modelName}, the article is predicted as ${result.label.toLowerCase()} with ${result.confidence.toFixed(1)}% confidence. Additional insights may be available.`,
+          duration: 7000, // Longer duration for more complex output
         });
       } else {
-        throw new Error("AI did not return a valid detection.");
+        throw new Error("AI did not return a valid detection structure.");
       }
     } catch (error: any) {
       console.error("Error detecting article:", error);
@@ -92,16 +95,19 @@ export default function DetectorPage() {
     }
   };
 
-  const handleSaveDetection = async (articleToSave: DetectedArticle) => {
+  const handleSaveDetection = async (articleToSave: Article) => {
+     if (articleToSave.type !== 'detected') return; // Ensure it's a DetectedArticle
+    const detectedArticleToSave = articleToSave as DetectedArticle;
+
     if (!user?.uid) {
       toast({ title: "Error", description: "You must be logged in to save detections.", variant: "destructive" });
       return;
     }
-    if (!articleToSave) return;
+    if (!detectedArticleToSave) return;
 
     setIsSaving(true);
     try {
-      const { id, ...dataToSave } = articleToSave;
+      const { id, ...dataToSave } = detectedArticleToSave;
       const savedData = await saveArticle(user.uid, dataToSave); 
       toast({ title: "Detection Saved!", description: "The detection result has been saved to your history." });
       setDetectionResult(prev => prev ? {...prev, id: savedData.id } : null); 
@@ -118,7 +124,7 @@ export default function DetectorPage() {
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl font-headline flex items-center"><ScanSearch className="mr-3 h-7 w-7 text-primary"/>Fake News Detector</CardTitle>
           <CardDescription>
-            Paste a news article below. Choose your preferred AI model to analyze its content and predict whether it's likely real or fake.
+            Paste a news article below. Our AI models will analyze its content, predict authenticity, and provide insights. The Genkit AI Model offers XAI justification and (mock) external fact-checking.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -142,7 +148,7 @@ export default function DetectorPage() {
                             <RadioGroupItem value="custom" />
                           </FormControl>
                           <FormLabel className="font-normal cursor-pointer flex items-center w-full">
-                            <Database className="mr-2 h-5 w-5 text-primary/80"/> Your Custom Model (Render API)
+                            <Database className="mr-2 h-5 w-5 text-primary/80"/> Custom Model (Render API)
                           </FormLabel>
                         </FormItem>
                         <FormItem className="flex items-center space-x-3 space-y-0 p-4 border rounded-md flex-1 hover:bg-accent/50 has-[[data-state=checked]]:bg-accent has-[[data-state=checked]]:text-accent-foreground transition-colors">
@@ -150,7 +156,7 @@ export default function DetectorPage() {
                             <RadioGroupItem value="llm" />
                           </FormControl>
                           <FormLabel className="font-normal cursor-pointer flex items-center w-full">
-                            <Brain className="mr-2 h-5 w-5 text-primary/80" /> Genkit AI Model (LLM-based)
+                            <Brain className="mr-2 h-5 w-5 text-primary/80" /> Genkit AI Model (XAI & Mock Fact-Check)
                           </FormLabel>
                         </FormItem>
                       </RadioGroup>
@@ -199,12 +205,12 @@ export default function DetectorPage() {
           <CardHeader>
             <CardTitle className="font-headline flex items-center"><Loader2 className="mr-2 h-5 w-5 animate-spin text-primary"/>Analyzing Article...</CardTitle>
             <CardDescription>
-                Our AI ({selectedMethodForDisplay === 'custom' ? 'Your Custom Model' : 'Genkit AI Model'}) is processing the text. This may take a few moments.
+                Our AI ({selectedMethodForDisplay === 'custom' ? 'Custom Model' : 'Genkit AI Model'}) is processing the text. This may take a few moments, especially if XAI insights are being generated.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center items-center min-h-[150px]">
             <div className="space-y-2 text-center">
-                <p className="text-muted-foreground">Please wait while we check for signs of misinformation.</p>
+                <p className="text-muted-foreground">Please wait while we check for signs of misinformation and gather insights.</p>
             </div>
           </CardContent>
         </Card>
@@ -216,10 +222,9 @@ export default function DetectorPage() {
           onSave={handleSaveDetection} 
           showSaveButton={!detectionResult.id && !isSaving} 
           isSaving={isSaving}
-          // You could pass the detection method to ArticleCard if you want to display it there
-          // detectionMethodUsed={selectedMethodForDisplay} 
         />
       )}
     </div>
   );
 }
+
