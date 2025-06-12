@@ -4,7 +4,7 @@ import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { AboutSection } from '@/components/landing/AboutSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
-// import { ContactSection } from '@/components/landing/ContactSection'; // Removed ContactSection import
+// Removed ContactSection import
 
 export default function LandingPage() {
   return (
@@ -14,7 +14,7 @@ export default function LandingPage() {
         <HeroSection />
         <AboutSection />
         <FeaturesSection />
-        {/* <ContactSection /> Removed ContactSection usage */}
+        {/* Removed ContactSection usage */}
       </main>
       <Footer />
     </div>

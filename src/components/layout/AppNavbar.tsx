@@ -28,7 +28,7 @@ import {
   LogOut,
   UserCircle,
   Menu,
-  Puzzle, // Added Puzzle icon
+  Puzzle,
 } from 'lucide-react';
 
 const navItems = [
@@ -36,11 +36,12 @@ const navItems = [
   { href: '/generator', label: 'Generator', icon: PenTool },
   { href: '/detector', label: 'Detector', icon: ScanText },
   { href: '/saved', label: 'Saved History', icon: Bookmark },
-  { href: '/playgame', label: 'Play Game', icon: Puzzle }, // Added Play Game link
+  { href: '/playgame', label: 'Play Game', icon: Puzzle },
 ];
 
 const userMenuItems = [
     { href: '/profile', label: 'Profile', icon: UserCircle },
+    // { href: '/settings', label: 'Settings', icon: SettingsIcon }, // Settings link removed
 ];
 
 export function AppNavbar() {
@@ -197,7 +198,7 @@ export function AppNavbar() {
                 </div>
                 <nav className="flex flex-col space-y-1 px-2 flex-grow">
                   <NavLinks mobile />
-                  <Separator className="my-2" />
+                  {userMenuItems.length > 0 && <Separator className="my-2" />}
                   <UserMenuItems mobile />
                    <Separator className="my-2" />
                     <SheetClose asChild>
