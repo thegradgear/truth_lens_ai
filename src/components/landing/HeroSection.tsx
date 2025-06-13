@@ -11,7 +11,7 @@ export function HeroSection() {
         <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
           <div className="space-y-6">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-headline">
-              Unmask Truth. Understand Bias.
+              Unmask Truth. Understand&nbsp;Bias.
               <span className="block text-primary">With Veritas AI.</span>
             </h1>
             <p className="text-lg text-muted-foreground md:text-xl">
