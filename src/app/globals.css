@@ -6,102 +6,116 @@
 @layer base {
   :root {
     /* Light Theme from User Palette */
-    --background: 20 27% 96%; /* #F7F4F3 */
-    --foreground: 0 0% 18%; /* #2D2D2D (Text Primary) */
+    --background: 30 27% 96%; /* #F7F4F3 (Background) */
+    --foreground: 250 5% 12%; /* #1C1B1F (Text Primary) */
 
-    --muted: 0 0% 42%; /* #6B6B6B (Text Secondary) */
-    --muted-foreground: 0 0% 42%; /* #6B6B6B (Text Secondary - can be slightly darker if needed, but using same for now) */
+    --muted: 20 19% 93%; /* #F0EBE9 (Surface Variant for muted backgrounds) */
+    --muted-foreground: 267 5% 29%; /* #49454F (Text Secondary) */
 
-    --popover: 0 0% 100%; /* #FFFFFF (Surface / Cards) */
-    --popover-foreground: 0 0% 18%; /* #2D2D2D (Text Primary) */
+    --popover: 0 0% 100%; /* #FFFFFF (Surface) */
+    --popover-foreground: 250 5% 12%; /* #1C1B1F (Text Primary) */
 
-    --card: 0 0% 100%; /* #FFFFFF (Surface / Cards) */
-    --card-foreground: 0 0% 18%; /* #2D2D2D (Text Primary) */
+    --card: 0 0% 100%; /* #FFFFFF (Surface) */
+    --card-foreground: 250 5% 12%; /* #1C1B1F (Text Primary) */
 
-    --border: 30 7% 87%; /* #E0DEDC */
-    --input: 30 10% 93%; /* Derived from Background/Border for light theme, e.g. #ECEBEA */
+    --border: 330 13% 89%; /* #E7E0E3 (Border) */
+    --input: 330 13% 89%; /* #E7E0E3 (Border for input borders) */
 
-    --primary: 345 44% 25%; /* #5B2333 */
-    --primary-foreground: 0 0% 98%; /* #FAFAFA, for contrast on dark primary */
+    --primary: 343 45% 25%; /* #5B2333 (Primary) */
+    --primary-foreground: 0 0% 98%; /* #FAFAFA (Light text for dark primary) */
 
-    --secondary: 345 47% 50%; /* #B84A62 (Accent Light) */
-    --secondary-foreground: 0 0% 98%; /* #FAFAFA, for contrast on Accent Light */
+    --secondary: 342 30% 41%; /* #8B4A5C (Primary Light for secondary) */
+    --secondary-foreground: 0 0% 98%; /* #FAFAFA (Light text for secondary) */
 
-    --accent: 345 47% 50%; /* #B84A62 */
-    --accent-foreground: 0 0% 98%; /* #FAFAFA, for contrast on Accent Light */
+    --accent: 342 30% 41%; /* #8B4A5C (Primary Light for accent) */
+    --accent-foreground: 0 0% 98%; /* #FAFAFA (Light text for accent) */
 
-    --destructive: 3 70% 50%; /* #D93025 (Error) */
+    --destructive: 0 65% 51%; /* #D32F2F (Error) */
     --destructive-foreground: 0 0% 98%; /* #FAFAFA */
 
-    --ring: 345 44% 25%; /* Primary for ring */
+    --ring: 343 45% 25%; /* #5B2333 (Primary for ring) */
 
-    --radius: 0.75rem; /* Updated from 0.5rem to 12px */
+    --radius: 0.75rem;
 
-    /* Chart Colors - Light Theme */
-    --chart-1: 345 44% 25%; /* Primary Light: #5B2333 */
-    --chart-2: 345 47% 50%; /* Accent Light: #B84A62 */
-    --chart-3: 146 48% 42%; /* Success Light: #3BA55D */
-    --chart-4: 43 100% 48%; /* Warning Light: #F4B400 */
-    --chart-5: 345 40% 70%; /* Lighter variant of Accent/Primary */
+    /* Semantic & Chart Colors - Light Theme */
+    --success: 123 48% 33%; /* #2E7D32 */
+    --success-foreground: 0 0% 98%; /* #FAFAFA */
+    --warning: 31 100% 48%; /* #F57C00 */
+    --warning-foreground: 250 5% 12%; /* #1C1B1F (Dark text on orange) */
+    --info: 211 79% 49%; /* #1976D2 */
+    --info-foreground: 0 0% 98%; /* #FAFAFA */
+
+    --chart-1: 343 45% 25%; /* Primary: #5B2333 */
+    --chart-2: 342 30% 41%; /* Primary Light (Accent): #8B4A5C */
+    --chart-3: 123 48% 33%; /* Success: #2E7D32 */
+    --chart-4: 31 100% 48%; /* Warning: #F57C00 */
+    --chart-5: 211 79% 49%; /* Info: #1976D2 */
 
     /* Sidebar specific colors - Light Theme */
-    --sidebar-background: 0 0% 100%; /* Align with --card */
-    --sidebar-foreground: 0 0% 18%; /* Align with --card-foreground */
-    --sidebar-primary: 345 44% 25%; /* Align with --primary */
-    --sidebar-primary-foreground: 0 0% 98%; /* Align with --primary-foreground */
-    --sidebar-accent: 345 47% 50%; /* Align with --accent */
-    --sidebar-accent-foreground: 0 0% 98%; /* Align with --accent-foreground */
-    --sidebar-border: 30 7% 87%; /* Align with --border */
-    --sidebar-ring: 345 47% 50%; /* Align with --accent for ring */
+    --sidebar-background: 0 0% 100%; /* Surface: #FFFFFF */
+    --sidebar-foreground: 250 5% 12%; /* Text Primary: #1C1B1F */
+    --sidebar-primary: 343 45% 25%; /* Primary: #5B2333 */
+    --sidebar-primary-foreground: 0 0% 98%; /* #FAFAFA */
+    --sidebar-accent: 342 30% 41%; /* Primary Light: #8B4A5C */
+    --sidebar-accent-foreground: 0 0% 98%; /* #FAFAFA */
+    --sidebar-border: 330 13% 89%; /* Border: #E7E0E3 */
+    --sidebar-ring: 342 30% 41%; /* Primary Light for ring: #8B4A5C */
   }
 
   .dark {
     /* Dark Theme from User Palette */
-    --background: 338 29% 8%; /* #1A0D13 */
-    --foreground: 20 27% 96%; /* #F7F4F3 (Text Primary Dark) */
+    --background: 0 0% 7%; /* #121212 (Background) */
+    --foreground: 30 27% 96%; /* #F7F4F3 (Text Primary) */
 
-    --muted: 330 14% 72%; /* #BFAEB4 (Text Secondary Dark) */
-    --muted-foreground: 330 14% 72%; /* #BFAEB4 (Text Secondary Dark) */
+    --muted: 0 0% 17%; /* #2C2C2C (Surface Variant for muted backgrounds) */
+    --muted-foreground: 0 0% 70%; /* #B3B3B3 (Text Secondary) */
 
-    --popover: 330 28% 14%; /* #2C1A23 (Surface / Cards Dark) */
-    --popover-foreground: 20 27% 96%; /* #F7F4F3 (Text Primary Dark) */
+    --popover: 0 0% 12%; /* #1E1E1E (Surface) */
+    --popover-foreground: 30 27% 96%; /* #F7F4F3 (Text Primary) */
 
-    --card: 330 28% 14%; /* #2C1A23 (Surface / Cards Dark) */
-    --card-foreground: 20 27% 96%; /* #F7F4F3 (Text Primary Dark) */
+    --card: 0 0% 12%; /* #1E1E1E (Surface) */
+    --card-foreground: 30 27% 96%; /* #F7F4F3 (Text Primary) */
 
-    --border: 330 20% 20%; /* #3E2A33 */
-    --input: 330 25% 12%; /* Derived from Background/Border for dark theme, e.g. #25151E */
+    --border: 0 0% 25%; /* #404040 (Border) */
+    --input: 0 0% 25%; /* #404040 (Border for input borders) */
 
-    --primary: 20 27% 96%; /* #F7F4F3 (Primary Dark) */
-    --primary-foreground: 0 0% 10%; /* #1A1A1A, for contrast on light primary */
+    --primary: 341 33% 74%; /* #D4A5B5 (Primary) */
+    --primary-foreground: 250 5% 12%; /* #1C1B1F (Dark text for light primary) */
 
-    --secondary: 343 50% 66%; /* #D97B8F (Accent Dark) */
-    --secondary-foreground: 0 0% 10%; /* #1A1A1A, for contrast on Accent Dark */
+    --secondary: 341 40% 84%; /* #E8C4D0 (Primary Light for secondary) */
+    --secondary-foreground: 250 5% 12%; /* #1C1B1F (Dark text for secondary) */
 
-    --accent: 343 50% 66%; /* #D97B8F */
-    --accent-foreground: 0 0% 10%; /* #1A1A1A, for contrast on Accent Dark */
+    --accent: 341 40% 84%; /* #E8C4D0 (Primary Light for accent) */
+    --accent-foreground: 250 5% 12%; /* #1C1B1F (Dark text for accent) */
 
-    --destructive: 3 70% 50%; /* #D93025 (Error) */
-    --destructive-foreground: 0 0% 98%; /* #FAFAFA */
+    --destructive: 4 90% 58%; /* #F44336 (Error) */
+    --destructive-foreground: 0 0% 98%; /* #FAFAFA (Light text for destructive) */
 
-    --ring: 20 27% 96%; /* Primary Dark for ring */
+    --ring: 341 33% 74%; /* #D4A5B5 (Primary for ring) */
     
-    /* Chart Colors - Dark Theme */
-    --chart-1: 20 27% 96%; /* Primary Dark: #F7F4F3 */
-    --chart-2: 343 50% 66%; /* Accent Dark: #D97B8F */
-    --chart-3: 145 52% 59%; /* Success Dark: #5DC983 */
-    --chart-4: 47 100% 70%; /* Warning Dark: #FFD966 */
-    --chart-5: 343 45% 80%; /* Lighter variant of Accent Dark */
+    /* Semantic & Chart Colors - Dark Theme */
+    --success: 122 39% 55%; /* #4CAF50 */
+    --success-foreground: 250 5% 12%; /* #1C1B1F */
+    --warning: 36 100% 50%; /* #FF9800 */
+    --warning-foreground: 250 5% 12%; /* #1C1B1F */
+    --info: 207 90% 54%; /* #2196F3 */
+    --info-foreground: 0 0% 98%; /* #FAFAFA */
+
+    --chart-1: 341 33% 74%; /* Primary: #D4A5B5 */
+    --chart-2: 341 40% 84%; /* Primary Light (Accent): #E8C4D0 */
+    --chart-3: 122 39% 55%; /* Success: #4CAF50 */
+    --chart-4: 36 100% 50%; /* Warning: #FF9800 */
+    --chart-5: 207 90% 54%; /* Info: #2196F3 */
 
     /* Sidebar specific colors - Dark Theme */
-    --sidebar-background: 330 28% 14%; /* Align with --card */
-    --sidebar-foreground: 20 27% 96%; /* Align with --card-foreground */
-    --sidebar-primary: 20 27% 96%; /* Align with --primary */
-    --sidebar-primary-foreground: 0 0% 10%; /* Align with --primary-foreground */
-    --sidebar-accent: 343 50% 66%; /* Align with --accent */
-    --sidebar-accent-foreground: 0 0% 10%; /* Align with --accent-foreground */
-    --sidebar-border: 330 20% 20%; /* Align with --border */
-    --sidebar-ring: 343 50% 66%; /* Align with --accent for ring */
+    --sidebar-background: 0 0% 12%; /* Surface: #1E1E1E */
+    --sidebar-foreground: 30 27% 96%; /* Text Primary: #F7F4F3 */
+    --sidebar-primary: 341 33% 74%; /* Primary: #D4A5B5 */
+    --sidebar-primary-foreground: 250 5% 12%; /* #1C1B1F */
+    --sidebar-accent: 341 40% 84%; /* Primary Light: #E8C4D0 */
+    --sidebar-accent-foreground: 250 5% 12%; /* #1C1B1F */
+    --sidebar-border: 0 0% 25%; /* Border: #404040 */
+    --sidebar-ring: 341 40% 84%; /* Primary Light for ring: #E8C4D0 */
   }
 }
 
