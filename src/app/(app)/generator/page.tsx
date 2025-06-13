@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -164,12 +163,12 @@ export default function GeneratorPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="bg-secondary/70 border-primary/30">
+      <Card className="bg-secondary/70 dark:bg-[#B8859A] border-primary/30">
         <CardHeader className="flex flex-row items-start gap-4">
-          <Lightbulb className="h-8 w-8 text-primary mt-1 shrink-0" />
+          <Lightbulb className="h-8 w-8 text-primary dark:text-primary-foreground mt-1 shrink-0" />
           <div>
             <CardTitle className="font-headline text-xl">Understanding AI Generation & Ethical Use</CardTitle>
-            <CardDescription className="mt-2 space-y-2">
+            <CardDescription className="mt-2 space-y-2 dark:text-card-foreground">
                 <p>
                 AI-generated content (text and images) is for illustrative or educational purposes. Always apply critical thinking when reviewing or using AI-created materials.
                 </p>
@@ -342,4 +341,3 @@ export default function GeneratorPage() {
       )}
     </div>
   );
-}
