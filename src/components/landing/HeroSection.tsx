@@ -8,7 +8,7 @@ export function HeroSection() {
   return (
     <section className="py-16 md:py-24 bg-gradient-to-br from-primary/5 via-background to-accent/5">
       <div className="container px-4 md:px-6">
-        <div className="grid gap-8 md:grid-cols-2 md:items-center">
+        <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
           <div className="space-y-6">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-headline">
               Unmask Truth. Understand Bias.
@@ -31,7 +31,7 @@ export function HeroSection() {
               </Button>
             </div>
           </div>
-          <div className="relative aspect-video rounded-xl overflow-hidden shadow-2xl group">
+          <div className="relative aspect-video rounded-xl overflow-hidden shadow-2xl group mt-8 lg:mt-0">
              <Image
               src="https://placehold.co/1200x675.png"
               alt="AI analyzing news"
@@ -51,4 +51,3 @@ export function HeroSection() {
     </section>
   );
 }
-

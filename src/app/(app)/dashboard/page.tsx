@@ -24,7 +24,7 @@ export default function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-            <div className="grid md:grid-cols-2 gap-6 items-center">
+            <div className="grid lg:grid-cols-2 gap-6 items-center">
                 <div>
                     <p className="mb-6 text-muted-foreground">
                         Ready to dive in? Choose an action below to get started, explore your saved history, or test your skills with our game. Veritas AI is designed to help you understand how AI perceives and creates information.
@@ -42,7 +42,7 @@ export default function DashboardPage() {
                         </Button>
                     </div>
                 </div>
-                <div className="relative aspect-video rounded-lg overflow-hidden shadow-md">
+                <div className="relative aspect-video rounded-lg overflow-hidden shadow-md mt-6 lg:mt-0">
                     <Image 
                         src="https://placehold.co/600x338.png" 
                         alt="AI Dashboard Illustration" 
