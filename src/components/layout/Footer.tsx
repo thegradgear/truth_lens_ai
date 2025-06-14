@@ -7,7 +7,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border/40 bg-background text-muted-foreground">
       <div className="container py-12 px-4 md:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
           {/* Column 1: Brand and Contact */}
           <div className="space-y-4">
             <Logo size="medium" />
@@ -27,16 +27,27 @@ export function Footer() {
             <h5 className="font-semibold text-foreground mb-4">Navigate</h5>
             <ul className="space-y-3">
               <li><Link href="/" className="hover:text-primary transition-colors text-sm">Home</Link></li>
-              <li><Link href="/#features" className="hover:text-primary transition-colors text-sm">Features</Link></li>
+              <li><Link href="/#features" className="hover:text-primary transition-colors text-sm">Features (Landing)</Link></li>
               <li><Link href="/#about" className="hover:text-primary transition-colors text-sm">About Us</Link></li>
             </ul>
           </div>
 
-          {/* Column 3: Resources */}
-          <div className="md:justify-self-end">
+          {/* Column 3: Features (App Links) */}
+          <div className="md:justify-self-center">
+            <h5 className="font-semibold text-foreground mb-4">Features</h5>
+            <ul className="space-y-3">
+              <li><Link href="/dashboard" className="hover:text-primary transition-colors text-sm">Dashboard</Link></li>
+              <li><Link href="/generator" className="hover:text-primary transition-colors text-sm">Generator</Link></li>
+              <li><Link href="/detector" className="hover:text-primary transition-colors text-sm">Detector</Link></li>
+              <li><Link href="/playgame" className="hover:text-primary transition-colors text-sm">Play Game</Link></li>
+              <li><Link href="/saved" className="hover:text-primary transition-colors text-sm">Saved</Link></li>
+            </ul>
+          </div>
+
+          {/* Column 4: Resources */}
+          <div className="md:justify-self-center"> {/* Changed from justify-self-end to center for consistency if needed */}
             <h5 className="font-semibold text-foreground mb-4">Resources</h5>
             <ul className="space-y-3">
-              {/* Removed Contact Page Link */}
               <li><Link href="/privacy" className="hover:text-primary transition-colors text-sm">Privacy Policy</Link></li>
               {/* Example for a potential future link:
               <li><Link href="/terms" className="hover:text-primary transition-colors text-sm">Terms of Service</Link></li>
