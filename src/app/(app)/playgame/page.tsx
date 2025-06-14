@@ -191,14 +191,14 @@ export default function PlayGamePage() {
                 key={num}
                 htmlFor={`num-${num}`}
                 className={cn(
-                    "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer",
+                    "flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer group",
                     numQuestions === num && "border-primary ring-2 ring-primary",
                     isLoadingGameSetup && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <RadioGroupItem value={String(num)} id={`num-${num}`} className="sr-only" disabled={isLoadingGameSetup} />
                 <span className="text-xl font-semibold">{num}</span>
-                <span className="text-xs text-muted-foreground">Questions</span>
+                <span className="text-xs text-muted-foreground group-hover:text-accent-foreground">Questions</span>
               </Label>
             ))}
           </RadioGroup>
