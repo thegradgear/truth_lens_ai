@@ -13,7 +13,7 @@ export function AboutSection() {
             Dedicated to fostering media literacy and critical thinking in the digital age.
           </p>
         </div>
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 items-start">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 items-stretch">
           <Card className="shadow-lg hover:shadow-xl transition-shadow flex flex-col">
             <CardHeader className="items-center">
               <div className="p-3 rounded-full bg-primary/10 text-primary mb-2">
