@@ -43,7 +43,7 @@ const navItems = [
   { href: '/generator', label: 'Generator', icon: PenTool },
   { href: '/detector', label: 'Detector', icon: ScanText },
   { href: '/playgame', label: 'Play Game', icon: Puzzle },
-  { href: '/saved', label: 'Saved History', icon: Bookmark },
+  { href: '/saved', label: 'Saved', icon: Bookmark },
 ];
 
 const userMenuItems = [
