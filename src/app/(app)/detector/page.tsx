@@ -58,7 +58,7 @@ export default function DetectorPage() {
     try {
       let result: DetectFakeNewsOutput | LlmDetectFakeNewsOutput;
       let articleTitle: string | undefined;
-      const modelName = data.detectionMethod === 'custom' ? "Your Custom Model" : "Genkit AI Model (with XAI & Mock Fact-Check)";
+      const modelName = data.detectionMethod === 'custom' ? "Truth Lens Model" : "Genkit AI Model (with XAI & Mock Fact-Check)";
 
       if (data.detectionMethod === 'custom') {
         const input: DetectFakeNewsInput = { articleText: data.articleText };
@@ -134,7 +134,7 @@ export default function DetectorPage() {
           <div>
             <CardTitle className="font-headline text-xl">Understanding AI Detection Tools</CardTitle>
             <CardDescription className="mt-1">
-              Remember that AI tools, including Veritas AI, are not infallible. Detection scores are probabilistic. Always apply critical thinking when interpreting AI-based analysis.
+              Remember that AI tools, including Truth Lens AI, are not infallible. Detection scores are probabilistic. Always apply critical thinking when interpreting AI-based analysis.
             </CardDescription>
           </div>
         </CardHeader>
@@ -168,7 +168,7 @@ export default function DetectorPage() {
                             <RadioGroupItem value="custom" />
                           </FormControl>
                           <FormLabel className="font-normal cursor-pointer flex items-center w-full">
-                            <Database className="mr-2 h-5 w-5"/> Custom Model (Render API)
+                            <Database className="mr-2 h-5 w-5"/> Truth Lens Model (Render API)
                           </FormLabel>
                         </FormItem>
                         <FormItem className="flex items-center space-x-3 space-y-0 p-4 border rounded-md flex-1 hover:bg-accent/50 has-[[data-state=checked]]:bg-accent has-[[data-state=checked]]:text-accent-foreground transition-colors">
@@ -225,7 +225,7 @@ export default function DetectorPage() {
           <CardHeader>
             <CardTitle className="font-headline flex items-center"><Loader2 className="mr-2 h-5 w-5 animate-spin text-primary"/>Analyzing Article...</CardTitle>
             <CardDescription>
-                Our AI ({selectedMethodForDisplay === 'custom' ? 'Custom Model' : 'Genkit AI Model'}) is processing the text. This may take a few moments, especially if XAI insights and a title are being generated.
+                Our AI ({selectedMethodForDisplay === 'custom' ? 'Truth Lens Model' : 'Genkit AI Model'}) is processing the text. This may take a few moments, especially if XAI insights and a title are being generated.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center items-center min-h-[150px]">

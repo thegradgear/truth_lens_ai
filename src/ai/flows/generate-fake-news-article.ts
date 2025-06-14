@@ -31,7 +31,7 @@ export async function generateFakeNewsArticle(
   try {
     return await generateFakeNewsArticleFlow(input);
   } catch (error: any) {
-    console.error("[VeritasAI] Error in generateFakeNewsArticle flow execution:", error);
+    console.error("[TruthLensAI] Error in generateFakeNewsArticle flow execution:", error);
     if (error instanceof Error) {
         const flowErrorMessage = error.message || '';
         // Check for known, specific error messages from the inner flow
@@ -92,20 +92,20 @@ const generateFakeNewsArticleFlow = ai.defineFlow(
         if (candidates && candidates.length > 0) {
             const firstCandidate = candidates[0];
             if (firstCandidate.finishReason === 'SAFETY') {
-                console.warn('[VeritasAI] Article generation blocked by safety filters for input:', input, 'Finish message:', firstCandidate.finishMessage);
+                console.warn('[TruthLensAI] Article generation blocked by safety filters for input:', input, 'Finish message:', firstCandidate.finishMessage);
                 throw new Error("The AI could not generate an article for this topic due to safety content policies. Please try a different topic.");
             }
             if (firstCandidate.finishReason === 'RECITATION') {
-                 console.warn('[VeritasAI] Article generation blocked due to recitation policy for input:', input, 'Finish message:', firstCandidate.finishMessage);
+                 console.warn('[TruthLensAI] Article generation blocked due to recitation policy for input:', input, 'Finish message:', firstCandidate.finishMessage);
                 throw new Error("The AI could not generate an article as it might resemble copyrighted material. Please try a different topic.");
             }
         }
-        console.error('[VeritasAI] Article generation failed: AI did not return a valid article structure (title and/or body missing) for input:', input);
+        console.error('[TruthLensAI] Article generation failed: AI did not return a valid article structure (title and/or body missing) for input:', input);
         throw new Error('AI model did not return a complete article (title or body). Please try modifying your input or try again later.');
       }
       return output;
     } catch (error: any) {
-        console.error("[VeritasAI] Error during article generation prompt execution in flow:", error);
+        console.error("[TruthLensAI] Error during article generation prompt execution in flow:", error);
         if (error instanceof Error) {
           // Re-throw known user-friendly errors directly
           if (error.message.startsWith("The AI could not generate") || 
@@ -125,4 +125,3 @@ const generateFakeNewsArticleFlow = ai.defineFlow(
     }
   }
 );
-

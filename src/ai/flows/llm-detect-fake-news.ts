@@ -46,7 +46,7 @@ const externalFactCheckerTool = ai.defineTool(
   async (input) => {
     try {
         // In a real implementation, this would call an external API (e.g., Google Fact Check API)
-        console.log("[VeritasAI] Mock externalFactCheckerTool called with text snippet:", input.articleText.substring(0, 100) + "...");
+        console.log("[TruthLensAI] Mock externalFactCheckerTool called with text snippet:", input.articleText.substring(0, 100) + "...");
         // Simulate some processing time
         await new Promise(resolve => setTimeout(resolve, 500));
         
@@ -63,7 +63,7 @@ const externalFactCheckerTool = ai.defineTool(
         }
         return [];
     } catch (toolError: any) {
-        console.error("[VeritasAI] Error in externalFactCheckerTool (mock):", toolError);
+        console.error("[TruthLensAI] Error in externalFactCheckerTool (mock):", toolError);
         // Even for a mock tool, it's good practice to handle errors.
         // In a real tool, you'd throw an error that the calling flow can handle.
         // For this mock, we'll just return an empty array to simulate failure.
@@ -77,7 +77,7 @@ export async function llmDetectFakeNews(input: LlmDetectFakeNewsInput): Promise<
   try {
     return await llmDetectFakeNewsFlow(input);
   } catch (error: any) {
-    console.error("[VeritasAI] Error in llmDetectFakeNews flow execution:", error);
+    console.error("[TruthLensAI] Error in llmDetectFakeNews flow execution:", error);
     if (error instanceof Error) {
       throw new Error(`LLM-based detection failed: ${error.message || 'An unexpected error occurred in the LLM detection flow.'}`);
     }
@@ -125,15 +125,15 @@ const llmDetectFakeNewsFlow = ai.defineFlow(
         if (candidates && candidates.length > 0) {
             const firstCandidate = candidates[0];
             if (firstCandidate.finishReason === 'SAFETY') {
-                console.warn('[VeritasAI] LLM detection blocked by safety filters for input:', input.articleText.substring(0,100), 'Finish message:', firstCandidate.finishMessage);
+                console.warn('[TruthLensAI] LLM detection blocked by safety filters for input:', input.articleText.substring(0,100), 'Finish message:', firstCandidate.finishMessage);
                 throw new Error("The AI could not analyze this article due to safety content policies. Please try different content.");
             }
              if (firstCandidate.finishReason === 'RECITATION') {
-                 console.warn('[VeritasAI] LLM detection blocked due to recitation policy for input:', input.articleText.substring(0,100), 'Finish message:', firstCandidate.finishMessage);
+                 console.warn('[TruthLensAI] LLM detection blocked due to recitation policy for input:', input.articleText.substring(0,100), 'Finish message:', firstCandidate.finishMessage);
                 throw new Error("The AI could not analyze this article as it might resemble copyrighted material. Please try different content.");
             }
         }
-        console.error('[VeritasAI] LLM detection failed: AI did not return a valid detection structure for input:', input.articleText.substring(0,100));
+        console.error('[TruthLensAI] LLM detection failed: AI did not return a valid detection structure for input:', input.articleText.substring(0,100));
         throw new Error('The LLM AI model did not return a valid detection response. Please try again later.');
       }
 
@@ -141,30 +141,30 @@ const llmDetectFakeNewsFlow = ai.defineFlow(
           output.confidence = parseFloat(output.confidence);
       }
       if (isNaN(output.confidence) || output.confidence === undefined || output.confidence === null) {
-          console.warn("[VeritasAI] LLM returned non-numeric or missing confidence, defaulted to 50 for input:", input.articleText.substring(0,100), "Received confidence:", output.confidence);
+          console.warn("[TruthLensAI] LLM returned non-numeric or missing confidence, defaulted to 50 for input:", input.articleText.substring(0,100), "Received confidence:", output.confidence);
           output.confidence = 50; // Default confidence if parsing fails or value is invalid
       }
       output.confidence = Math.max(0, Math.min(100, parseFloat(output.confidence.toFixed(1))));
 
       if (!output.label) {
-          console.warn("[VeritasAI] LLM returned missing label, defaulted to 'Fake' for input:", input.articleText.substring(0,100));
+          console.warn("[TruthLensAI] LLM returned missing label, defaulted to 'Fake' for input:", input.articleText.substring(0,100));
           output.label = 'Fake'; // Default label if missing
       }
       
       if (!output.suggestedTitle) {
-          console.warn("[VeritasAI] LLM returned missing suggestedTitle, will be handled by client for input:", input.articleText.substring(0,100));
+          console.warn("[TruthLensAI] LLM returned missing suggestedTitle, will be handled by client for input:", input.articleText.substring(0,100));
           // Client-side will create a snippet title if this is missing.
       }
       
       // Ensure justification is a string if it exists
       if (output.justification && typeof output.justification !== 'string') {
-          console.warn("[VeritasAI] LLM returned non-string justification, attempting to stringify for input:", input.articleText.substring(0,100));
+          console.warn("[TruthLensAI] LLM returned non-string justification, attempting to stringify for input:", input.articleText.substring(0,100));
           output.justification = JSON.stringify(output.justification);
       }
       
       return output;
     } catch (error: any) {
-        console.error("[VeritasAI] Error during LLM detection prompt execution in flow:", error);
+        console.error("[TruthLensAI] Error during LLM detection prompt execution in flow:", error);
          if (error instanceof Error && (error.message.includes("safety content policies") || error.message.includes("copyrighted material") || error.message.includes("AI model did not return a valid detection response"))) {
             throw error; // Re-throw specific errors
         }
@@ -173,4 +173,3 @@ const llmDetectFakeNewsFlow = ai.defineFlow(
     }
   }
 );
-

@@ -52,7 +52,7 @@ export default function SignupPage() {
                 <Logo size="large" />
             </div>
             <CardTitle className="text-2xl font-headline">Create your Account</CardTitle>
-            <CardDescription>Join Veritas AI and start exploring the world of news with AI.</CardDescription>
+            <CardDescription>Join Truth Lens AI and start exploring the world of news with AI.</CardDescription>
           </CardHeader>
           <CardContent>
             <SignupForm />

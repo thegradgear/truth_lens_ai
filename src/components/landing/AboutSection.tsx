@@ -8,7 +8,7 @@ export function AboutSection() {
     <section id="about" className="py-16 md:py-24 bg-background">
       <div className="container px-4 md:px-6">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">About Veritas AI</h2>
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">About Truth Lens AI</h2>
           <p className="mt-4 text-lg text-muted-foreground">
             Dedicated to fostering media literacy and critical thinking in the digital age.
           </p>
@@ -50,14 +50,14 @@ export function AboutSection() {
         </div>
         <div className="mt-16 grid md:grid-cols-2 gap-8 items-center">
             <div>
-                <h3 className="text-2xl font-bold tracking-tight sm:text-3xl font-headline mb-4">Why Veritas AI?</h3>
+                <h3 className="text-2xl font-bold tracking-tight sm:text-3xl font-headline mb-4">Why Truth Lens AI?</h3>
                 <p className="text-muted-foreground mb-4">
-                    In an era of information overload, distinguishing credible news from fabricated stories is more challenging than ever. Veritas AI leverages state-of-the-art artificial intelligence to provide you with tools for critical analysis, creative exploration, and skill development.
+                    In an era of information overload, distinguishing credible news from fabricated stories is more challenging than ever. Truth Lens AI leverages state-of-the-art artificial intelligence to provide you with tools for critical analysis, creative exploration, and skill development.
                 </p>
                 <ul className="space-y-2 text-muted-foreground">
                     <li className="flex items-start">
                         <CheckIcon className="h-5 w-5 text-primary mr-2 mt-1 shrink-0" />
-                        <span><strong>Advanced Detection:</strong> Utilize our custom ML model and a Genkit-powered LLM (with XAI & mock fact-checking) to analyze news articles.</span>
+                        <span><strong>Advanced Detection:</strong> Utilize our Truth Lens model and a Genkit-powered LLM (with XAI & mock fact-checking) to analyze news articles.</span>
                     </li>
                     <li className="flex items-start">
                         <CheckIcon className="h-5 w-5 text-primary mr-2 mt-1 shrink-0" />
@@ -106,4 +106,3 @@ function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
-

@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Newspaper } from 'lucide-react';
 
@@ -21,7 +22,7 @@ export function Logo({ size = 'medium', className }: LogoProps) {
   return (
     <Link href="/" className={`flex items-center space-x-2 text-primary ${className}`}>
       <Newspaper className={`${sizeClasses[size]}`} />
-      <span className={`font-bold ${textSizeClasses[size]} font-headline`}>Veritas AI</span>
+      <span className={`font-bold ${textSizeClasses[size]} font-headline`}>Truth Lens AI</span>
     </Link>
   );
 }

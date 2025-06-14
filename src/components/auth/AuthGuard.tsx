@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,7 +27,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         <Skeleton className="h-12 w-12 rounded-full mb-4" />
         <Skeleton className="h-4 w-[250px] mb-2" />
         <Skeleton className="h-4 w-[200px]" />
-        <p className="mt-4 text-muted-foreground">Loading Veritas AI...</p>
+        <p className="mt-4 text-muted-foreground">Loading Truth Lens AI...</p>
       </div>
     );
   }

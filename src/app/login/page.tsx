@@ -52,7 +52,7 @@ export default function LoginPage() {
               <Logo size="large" />
             </div>
             <CardTitle className="text-2xl font-headline">Welcome Back!</CardTitle>
-            <CardDescription>Sign in to access your Veritas AI dashboard.</CardDescription>
+            <CardDescription>Sign in to access your Truth Lens AI dashboard.</CardDescription>
           </CardHeader>
           <CardContent>
             <LoginForm />

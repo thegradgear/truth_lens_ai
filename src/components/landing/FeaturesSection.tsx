@@ -6,7 +6,7 @@ const features = [
   {
     icon: <ScanText className="h-10 w-10 text-primary" />,
     title: "Dual AI News Detection",
-    description: "Analyze articles using our custom ML model or an advanced Genkit AI model (with XAI & mock fact-checking) to get a confidence score on authenticity.",
+    description: "Analyze articles using our Truth Lens model or an advanced Genkit AI model (with XAI & mock fact-checking) to get a confidence score on authenticity.",
   },
   {
     icon: <BotMessageSquare className="h-10 w-10 text-primary" />,
@@ -42,7 +42,7 @@ export function FeaturesSection() {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">Powerful Features at Your Fingertips</h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Veritas AI offers a suite of tools to help you navigate the complex world of information, including AI-driven content generation, analysis, and interactive learning.
+            Truth Lens AI offers a suite of tools to help you navigate the complex world of information, including AI-driven content generation, analysis, and interactive learning.
           </p>
         </div>
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -64,4 +64,3 @@ export function FeaturesSection() {
     </section>
   );
 }
-

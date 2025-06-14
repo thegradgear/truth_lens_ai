@@ -166,7 +166,7 @@ export default function GeneratorPage() {
     const { title, content, topic, category, tone, timestamp, imageUrl } = generatedArticle;
     const formattedTimestamp = timestamp ? format(new Date(timestamp), "MMMM d, yyyy, h:mm a") : 'N/A';
     const safeTopic = topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50) || 'article';
-    const filename = `veritas-ai-generated-${safeTopic}.md`;
+    const filename = `truth-lens-ai-generated-${safeTopic}.md`;
 
     let markdownContent = `
 # ${title}
@@ -180,7 +180,7 @@ ${content}
 - **Category:** ${category}
 - **Tone:** ${tone}
 - **Generated on:** ${formattedTimestamp}
-- *Exported from Veritas AI*
+- *Exported from Truth Lens AI*
 `;
     markdownContent = markdownContent.trim().replace(/\n\s*\n\s*\n/g, '\n\n');
     const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
@@ -203,7 +203,7 @@ ${content}
     const { title, content, topic, category, tone, timestamp, imageUrl } = generatedArticle;
     const formattedTimestamp = timestamp ? format(new Date(timestamp), "MMMM d, yyyy, h:mm a") : 'N/A';
     const safeTopic = topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50) || 'article';
-    const filename = `veritas-ai-generated-${safeTopic}.pdf`;
+    const filename = `truth-lens-ai-generated-${safeTopic}.pdf`;
 
     const pdfElement = document.createElement('div');
     pdfElement.style.position = 'absolute';
@@ -217,7 +217,7 @@ ${content}
 
     let htmlContent = `
       <h1 style="font-size: 24px; margin-bottom: 10px; color: #1a73e8;">${title}</h1>
-      <p style="font-size: 10px; color: #777; margin-bottom: 15px;">Generated on: ${formattedTimestamp} by Veritas AI</p>
+      <p style="font-size: 10px; color: #777; margin-bottom: 15px;">Generated on: ${formattedTimestamp} by Truth Lens AI</p>
     `;
     if (imageUrl) {
       htmlContent += `<img src="${imageUrl}" alt="Article Image" style="max-width: 100%; height: auto; margin-bottom: 15px; border: 1px solid #eee;" crossOrigin="anonymous" />`;
@@ -294,7 +294,7 @@ ${content}
                 <div className="flex items-start gap-2 text-sm text-destructive/90 dark:text-destructive/80 border-t border-destructive/20 pt-3 mt-3">
                   <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
                   <p>
-                  <strong>Ethical Use Reminder:</strong> Use these generation tools responsibly. Do not create or spread misinformation. Veritas AI is intended for learning and understanding AI capabilities.
+                  <strong>Ethical Use Reminder:</strong> Use these generation tools responsibly. Do not create or spread misinformation. Truth Lens AI is intended for learning and understanding AI capabilities.
                   </p>
                 </div>
             </CardDescription>

@@ -12,12 +12,12 @@ export function Footer() {
           <div className="space-y-4">
             <Logo size="medium" />
             <p className="text-sm">
-              Veritas AI: Unmasking truth and understanding bias in the digital age.
+              Truth Lens AI: Unmasking truth and understanding bias in the digital age.
             </p>
             <div className="flex items-center space-x-2 pt-2">
               <Mail className="h-5 w-5 text-primary" />
-              <a href="mailto:contact@veritasai.com" className="hover:text-primary transition-colors text-sm">
-                contact@veritasai.com
+              <a href="mailto:contact@truthlensai.com" className="hover:text-primary transition-colors text-sm">
+                contact@truthlensai.com
               </a>
             </div>
           </div>
@@ -27,7 +27,7 @@ export function Footer() {
             <h5 className="font-semibold text-foreground mb-4">Navigate</h5>
             <ul className="space-y-3">
               <li><Link href="/" className="hover:text-primary transition-colors text-sm">Home</Link></li>
-              <li><Link href="/#features" className="hover:text-primary transition-colors text-sm">Features (Landing)</Link></li>
+              <li><Link href="/#features" className="hover:text-primary transition-colors text-sm">Features</Link></li>
               <li><Link href="/#about" className="hover:text-primary transition-colors text-sm">About Us</Link></li>
             </ul>
           </div>
@@ -45,7 +45,7 @@ export function Footer() {
           </div>
 
           {/* Column 4: Resources */}
-          <div className="md:justify-self-center"> {/* Changed from justify-self-end to center for consistency if needed */}
+          <div className="md:justify-self-center">
             <h5 className="font-semibold text-foreground mb-4">Resources</h5>
             <ul className="space-y-3">
               <li><Link href="/privacy" className="hover:text-primary transition-colors text-sm">Privacy Policy</Link></li>
@@ -70,7 +70,7 @@ export function Footer() {
             </Link>
           </div>
           <p className="text-xs text-center sm:text-right">
-            &copy; {new Date().getFullYear()} Veritas AI. All rights reserved.
+            &copy; {new Date().getFullYear()} Truth Lens AI. All rights reserved.
           </p>
         </div>
       </div>

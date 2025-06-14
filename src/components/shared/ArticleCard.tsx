@@ -88,13 +88,13 @@ export function ArticleCard({ article, onDelete }: ArticleCardProps) {
 
   const handleExportMarkdown = () => {
     let markdownContent = "";
-    let filename = "veritas-ai-article.md";
+    let filename = "truth-lens-ai-article.md";
     const formattedTimestamp = articleData.timestamp ? format(new Date(articleData.timestamp), "MMMM d, yyyy, h:mm a") : 'N/A';
 
     if (article.type === 'generated') {
       const genArticle = articleData as GeneratedArticle;
       const safeTopic = genArticle.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50) || 'article';
-      filename = `veritas-ai-generated-${safeTopic}.md`;
+      filename = `truth-lens-ai-generated-${safeTopic}.md`;
       markdownContent = `
 # ${genArticle.title}
 ${genArticle.imageUrl ? `\n![Header Image for ${genArticle.title.replace(/[^a-zA-Z0-9 ]/g, "")}](${genArticle.imageUrl})\n` : ''}
@@ -107,12 +107,12 @@ ${genArticle.content}
 - **Category:** ${genArticle.category}
 - **Tone:** ${genArticle.tone}
 - **Generated on:** ${formattedTimestamp}
-- *Exported from Veritas AI*
+- *Exported from Truth Lens AI*
 `;
     } else if (article.type === 'detected') {
       const detArticle = articleData as DetectedArticle;
       const titleForFile = detArticle.title ? detArticle.title.substring(0,30).replace(/[^a-z0-9]+/g, '-').toLowerCase() : 'analysis';
-      filename = `veritas-ai-detection-${titleForFile}.md`;
+      filename = `truth-lens-ai-detection-${titleForFile}.md`;
 
       let justificationMd = "";
       if (detArticle.justification) {
@@ -148,11 +148,11 @@ ${detArticle.text}
 **Detection Analysis:**
 - **Type:** Detected Article
 - **Prediction:** ${detArticle.result.label} (Confidence: ${detArticle.result.confidence.toFixed(1)}%)
-- **Detection Method:** ${detArticle.detectionMethod === 'custom' ? 'Custom Model' : 'Genkit AI Model'}
+- **Detection Method:** ${detArticle.detectionMethod === 'custom' ? 'Truth Lens Model' : 'Genkit AI Model'}
 ${justificationMd.trim()}
 ${factChecksMd.trim()}
 - **Analyzed on:** ${formattedTimestamp}
-- *Exported from Veritas AI*
+- *Exported from Truth Lens AI*
 `;
     }
 
@@ -182,7 +182,7 @@ ${factChecksMd.trim()}
     });
 
     const formattedTimestamp = articleData.timestamp ? format(new Date(articleData.timestamp), "MMMM d, yyyy, h:mm a") : 'N/A';
-    let filename = "veritas-ai-export.pdf";
+    let filename = "truth-lens-ai-export.pdf";
 
     const pdfElement = document.createElement('div');
     pdfElement.style.position = 'absolute';
@@ -199,10 +199,10 @@ ${factChecksMd.trim()}
     if (article.type === 'generated') {
       const genArticle = articleData as GeneratedArticle;
       const safeTopic = genArticle.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50) || 'article';
-      filename = `veritas-ai-generated-${safeTopic}.pdf`;
+      filename = `truth-lens-ai-generated-${safeTopic}.pdf`;
       htmlContent = `
         <h1 style="font-size: 24px; margin-bottom: 10px; color: #1a73e8;">${genArticle.title}</h1>
-        <p style="font-size: 10px; color: #777; margin-bottom: 15px;">Generated on: ${formattedTimestamp} by Veritas AI</p>
+        <p style="font-size: 10px; color: #777; margin-bottom: 15px;">Generated on: ${formattedTimestamp} by Truth Lens AI</p>
       `;
       if (genArticle.imageUrl) {
         htmlContent += `<img src="${genArticle.imageUrl}" alt="Article Image" style="max-width: 100%; height: auto; margin-bottom: 15px; border: 1px solid #eee;" crossOrigin="anonymous" />`;
@@ -217,16 +217,16 @@ ${factChecksMd.trim()}
     } else if (article.type === 'detected') {
       const detArticle = articleData as DetectedArticle;
       const titleForFile = detArticle.title ? detArticle.title.substring(0,30).replace(/[^a-z0-9]+/g, '-').toLowerCase() : 'analysis';
-      filename = `veritas-ai-detection-${titleForFile}.pdf`;
+      filename = `truth-lens-ai-detection-${titleForFile}.pdf`;
       htmlContent = `
         <h1 style="font-size: 24px; margin-bottom: 10px; color: #1a73e8;">${detArticle.title || 'Analysis Report'}</h1>
-        <p style="font-size: 10px; color: #777; margin-bottom: 15px;">Analyzed on: ${formattedTimestamp} by Veritas AI</p>
+        <p style="font-size: 10px; color: #777; margin-bottom: 15px;">Analyzed on: ${formattedTimestamp} by Truth Lens AI</p>
         <h2 style="font-size: 16px; margin-top: 20px; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Original Article Text:</h2>
         <div style="white-space: pre-wrap; line-height: 1.6; margin-bottom: 20px; padding: 10px; border: 1px solid #f0f0f0; background-color: #f9f9f9;">${detArticle.text.replace(/\n/g, '<br />')}</div>
         <hr style="margin: 20px 0; border-top: 1px solid #ccc;"/>
         <h2 style="font-size: 16px; margin-top: 20px; margin-bottom: 10px;">Detection Analysis:</h2>
         <p style="font-size: 12px;"><strong>Prediction:</strong> <span style="font-weight: bold; color: ${detArticle.result.label === 'Fake' ? '#d93025' : '#1e8e3e'};">${detArticle.result.label}</span> (Confidence: ${detArticle.result.confidence.toFixed(1)}%)</p>
-        <p style="font-size: 12px;"><strong>Detection Method:</strong> ${detArticle.detectionMethod === 'custom' ? 'Custom Model' : 'Genkit AI Model'}</p>
+        <p style="font-size: 12px;"><strong>Detection Method:</strong> ${detArticle.detectionMethod === 'custom' ? 'Truth Lens Model' : 'Genkit AI Model'}</p>
       `;
       if (detArticle.justification) {
         htmlContent += `<h3 style="font-size: 14px; margin-top: 15px; margin-bottom: 5px;">AI Justification:</h3><ul style="list-style-type: disc; padding-left: 20px; font-size: 12px; line-height: 1.5;">`;
@@ -336,7 +336,7 @@ ${factChecksMd.trim()}
   const justification = detectedArticleData?.justification;
   const factChecks = detectedArticleData?.factChecks;
 
-  const cardTitle = isGenerated
+  const cardTitleText = isGenerated
     ? (articleData as GeneratedArticle).title
     : (detectedArticleData?.title || "Analysis Report");
 
@@ -385,7 +385,7 @@ ${factChecksMd.trim()}
         >
           <Image
             src={(articleData as GeneratedArticle).imageUrl!}
-            alt={`Header for article titled: ${cardTitle.replace(/[^a-zA-Z0-9 ]/g, "")}`}
+            alt={`Header for article titled: ${cardTitleText.replace(/[^a-zA-Z0-9 ]/g, "")}`}
             layout="fill"
             objectFit="cover"
           />
@@ -393,38 +393,38 @@ ${factChecksMd.trim()}
       )}
 
       <CardHeader>
-        <div className="flex items-start justify-between w-full gap-2">
-          <CardTitle className="font-headline text-xl flex items-center flex-grow min-w-0">
-            {isGenerated ? (
-              <Bot className="mr-2 h-6 w-6 text-primary shrink-0" />
-            ) : (
-              resultLabel === 'Real' ?
-              <CheckCircle className="mr-2 h-6 w-6 text-green-500 shrink-0" /> :
-              <AlertTriangle className="mr-2 h-6 w-6 text-destructive shrink-0" />
-            )}
-            <span className="truncate">{cardTitle}</span>
-          </CardTitle>
-
-          <div className="flex items-center space-x-1 shrink-0">
-            {!isGenerated && detectedArticleData && (
-              <TooltipProvider delayDuration={0}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                     <Badge
-                       variant={resultLabel === 'Real' ? 'success' : 'destructive'}
-                       className="whitespace-nowrap"
-                     >
-                        {resultLabel}
-                      </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>This article is predicted as {resultLabel} by the AI model.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            {article.id && onDelete && user?.uid && <ActionMenu />}
-          </div>
+         <div className="flex items-start justify-between w-full gap-2">
+            <CardTitle className="font-headline text-xl flex items-center flex-grow min-w-0">
+              {isGenerated ? (
+                <Bot className="mr-2 h-6 w-6 text-primary shrink-0" />
+              ) : (
+                resultLabel === 'Real' ?
+                <CheckCircle className="mr-2 h-6 w-6 text-green-500 shrink-0" /> :
+                <AlertTriangle className="mr-2 h-6 w-6 text-destructive shrink-0" />
+              )}
+              <span className="truncate">{cardTitleText}</span>
+            </CardTitle>
+            
+            <div className="flex items-center space-x-1 shrink-0">
+              {!isGenerated && detectedArticleData && (
+                  <TooltipProvider delayDuration={0}>
+                      <Tooltip>
+                          <TooltipTrigger asChild>
+                              <Badge
+                                  variant={resultLabel === 'Real' ? 'success' : 'destructive'}
+                                  className="whitespace-nowrap"
+                              >
+                                  {resultLabel}
+                              </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                              <p>This article is predicted as {resultLabel} by the AI model.</p>
+                          </TooltipContent>
+                      </Tooltip>
+                  </TooltipProvider>
+              )}
+              {article.id && onDelete && user?.uid && <ActionMenu />}
+            </div>
         </div>
         {!isGenerated && detectedArticleData && (
           <CardDescription className="mt-1">
@@ -479,13 +479,13 @@ ${factChecksMd.trim()}
                     ) : (
                       <Brain className="mr-1 h-3 w-3 text-primary/80 shrink-0" />
                     )}
-                    <span className="truncate">Model: {detectedArticleData.detectionMethod === 'custom' ? 'Custom' : 'Genkit AI'}</span>
+                    <span className="truncate">Model: {detectedArticleData.detectionMethod === 'custom' ? 'Truth Lens' : 'Genkit AI'}</span>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>
                     {detectedArticleData.detectionMethod === 'custom'
-                      ? 'Detected using your deployed Render API model.'
+                      ? 'Detected using the Truth Lens model (Render API).'
                       : 'Detected using a Genkit-powered Large Language Model.'}
                   </p>
                 </TooltipContent>
@@ -510,7 +510,7 @@ ${factChecksMd.trim()}
                     <CheckCircle className="mr-3 h-7 w-7 text-green-500 shrink-0" /> :
                     <AlertTriangle className="mr-3 h-7 w-7 text-destructive shrink-0" />
                   )}
-                  {cardTitle}
+                  {cardTitleText}
                 </DialogTitleDetail>
                 <DialogDescriptionDetail className="text-xs text-muted-foreground pt-1">
                   {isGenerated ? "Generated Article Details" : "Detected Article Analysis"}
@@ -525,7 +525,7 @@ ${factChecksMd.trim()}
                         <div className="relative aspect-video w-full rounded-md overflow-hidden border mb-4">
                         <Image
                             src={(articleData as GeneratedArticle).imageUrl!}
-                            alt={`Header for: ${cardTitle}`}
+                            alt={`Header for: ${cardTitleText}`}
                             layout="fill"
                             objectFit="cover"
                         />
@@ -544,7 +544,7 @@ ${factChecksMd.trim()}
                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm mb-4 p-3 border rounded-md bg-secondary/20">
                             <div><span className="font-semibold text-primary">Prediction:</span> <span className={cn(resultLabel === 'Fake' ? 'text-destructive' : 'text-green-600', "font-bold")}>{resultLabel}</span></div>
                             <div><span className="font-semibold text-primary">Confidence:</span> {confidenceScore}%</div>
-                            <div><span className="font-semibold text-primary">Model:</span> {detectedArticleData.detectionMethod === 'custom' ? 'Custom' : 'Genkit AI'}</div>
+                            <div><span className="font-semibold text-primary">Model:</span> {detectedArticleData.detectionMethod === 'custom' ? 'Truth Lens' : 'Genkit AI'}</div>
                         </div>
                     )}
 
@@ -614,4 +614,3 @@ ${factChecksMd.trim()}
     </>
   );
 }
-

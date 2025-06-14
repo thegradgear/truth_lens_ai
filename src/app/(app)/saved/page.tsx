@@ -130,9 +130,9 @@ export default function SavedHistoryPage() {
     <div className="space-y-8">
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl md:text-3xl font-headline">Your Saved History</CardTitle>
+          <CardTitle className="text-2xl md:text-3xl font-headline">Your Saved Articles</CardTitle>
           <CardDescription>
-            Review all the articles you've generated or analyzed with Veritas AI.
+            Review all the articles you've generated or analyzed with Truth Lens AI.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -189,7 +189,7 @@ export default function SavedHistoryPage() {
                       </SelectTrigger>
                       <SelectContent>
                           <SelectItem value="all">All Methods</SelectItem>
-                          <SelectItem value="custom">Custom Model (Render API)</SelectItem>
+                          <SelectItem value="custom">Truth Lens Model (Render API)</SelectItem>
                           <SelectItem value="llm">Genkit AI Model</SelectItem>
                       </SelectContent>
                   </Select>
@@ -231,4 +231,3 @@ export default function SavedHistoryPage() {
 function Label({ htmlFor, children }: {htmlFor: string, children: React.ReactNode}) {
     return <label htmlFor={htmlFor} className="block text-sm font-medium text-muted-foreground">{children}</label>
 }
-

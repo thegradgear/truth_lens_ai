@@ -12,7 +12,7 @@ export function HeroSection() {
           <div className="space-y-6">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-headline">
               Unmask&nbsp;Truth. Understand&nbsp;Bias.
-              <span className="block text-primary">With&nbsp;Veritas&nbsp;AI.</span>
+              <span className="block text-primary">With&nbsp;Truth&nbsp;Lens&nbsp;AI.</span>
             </h1>
             <p className="text-lg text-muted-foreground md:text-xl">
               Empower yourself with cutting-edge AI tools to detect fake news, generate articles with images, and test your media literacy in our interactive game. Navigate the information age with confidence.

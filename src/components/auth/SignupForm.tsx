@@ -58,7 +58,7 @@ export function SignupForm() {
       await signUp(data.email, data.password, data.displayName);
       toast({
         title: "Signup Successful",
-        description: "Welcome to Veritas AI! Redirecting to dashboard...",
+        description: "Welcome to Truth Lens AI! Redirecting to dashboard...",
       });
       // Redirect is handled by AuthContext or AppLayout
     } catch (error: any) {

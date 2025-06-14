@@ -17,7 +17,7 @@ export default function DashboardPage() {
       <Card className="shadow-lg bg-gradient-to-r from-primary/10 to-accent/10">
         <CardHeader>
           <CardTitle className="text-3xl md:text-4xl font-headline">
-            Welcome to Veritas AI, {user?.displayName || user?.email || 'User'}!
+            Welcome to Truth Lens AI, {user?.displayName || user?.email || 'User'}!
           </CardTitle>
           <CardDescription className="text-lg text-muted-foreground">
             Your central hub for generating articles with images, detecting news authenticity using dual AI models, and sharpening your skills with our 'Guess Real or Fake?' media literacy game.
@@ -27,7 +27,7 @@ export default function DashboardPage() {
             <div className="grid lg:grid-cols-2 gap-6 items-center">
                 <div>
                     <p className="mb-6 text-muted-foreground">
-                        Ready to dive in? Choose an action below to get started, explore your saved history, or test your skills with our game. Veritas AI is designed to help you understand how AI perceives and creates information.
+                        Ready to dive in? Choose an action below to get started, explore your saved history, or test your skills with our game. Truth Lens AI is designed to help you understand how AI perceives and creates information.
                     </p>
                      <div className="flex flex-col sm:flex-row gap-4">
                         <Button asChild size="lg" className="flex-1 h-12 py-3">
@@ -94,7 +94,7 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="text-2xl font-bold font-headline">Analyze & Verify</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Paste any news article to assess its authenticity using our dual AI models (Custom & Genkit LLM).
+                  Paste any news article to assess its authenticity using our dual AI models (Truth Lens & Genkit LLM).
                 </p>
                 <Button variant="link" asChild className="px-0 mt-2">
                   <Link href="/detector">Go to Detector &rarr;</Link>
@@ -105,7 +105,7 @@ export default function DashboardPage() {
             {/* Saved History Card - Spans full width on LG */}
             <Card className="hover:shadow-lg transition-shadow lg:col-span-2">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Saved History</CardTitle>
+                <CardTitle className="text-sm font-medium">Saved</CardTitle>
                 <Bookmark className="h-5 w-5 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -114,7 +114,7 @@ export default function DashboardPage() {
                   Access all your previously generated articles (with images) and detected articles.
                 </p>
                 <Button variant="link" asChild className="px-0 mt-2">
-                  <Link href="/saved">View History &rarr;</Link>
+                  <Link href="/saved">View Saved &rarr;</Link>
                 </Button>
               </CardContent>
             </Card>

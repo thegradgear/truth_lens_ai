@@ -29,8 +29,8 @@ const FactCheckResultSchema = z.object({
 const DetectFakeNewsOutputSchema = z.object({
   label: z.enum(['Real', 'Fake']).describe('The predicted label for the article (Real or Fake).'),
   confidence: z.number().min(0).max(100).describe('The confidence score of the prediction (0-100).'),
-  justification: z.string().optional().describe('Justification for the prediction (not provided by this custom model flow).'),
-  factChecks: z.array(FactCheckResultSchema).optional().describe('External fact-checks (not provided by this custom model flow).'),
+  justification: z.string().optional().describe('Justification for the prediction (not provided by this model flow).'),
+  factChecks: z.array(FactCheckResultSchema).optional().describe('External fact-checks (not provided by this model flow).'),
 });
 export type DetectFakeNewsOutput = z.infer<typeof DetectFakeNewsOutputSchema>;
 
@@ -46,7 +46,7 @@ export async function detectFakeNews(input: DetectFakeNewsInput): Promise<Detect
 const predictFakeNews = ai.defineTool(
   {
     name: 'predictFakeNews',
-    description: 'Analyzes the provided news article text and predicts whether it is real or fake using a custom ML model. This tool provides the definitive prediction.',
+    description: 'Analyzes the provided news article text and predicts whether it is real or fake using the Truth Lens model. This tool provides the definitive prediction.',
     inputSchema: z.object({
       articleText: z.string().describe('The text content of the news article to analyze.'),
     }),
@@ -56,10 +56,10 @@ const predictFakeNews = ai.defineTool(
     }),
   },
   async (input) => {
-    const apiUrl = process.env.NEXT_PUBLIC_CUSTOM_ML_API_URL;
+    const apiUrl = process.env.NEXT_PUBLIC_CUSTOM_ML_API_URL; // Keep env var name for infrastructure stability
     if (!apiUrl) {
-      console.error("NEXT_PUBLIC_CUSTOM_ML_API_URL is not set. Cannot call custom ML model.");
-      throw new Error("Custom ML model endpoint is not configured. Please contact support or check the application settings.");
+      console.error("The environment variable NEXT_PUBLIC_CUSTOM_ML_API_URL (for the Truth Lens model) is not set. Cannot call Truth Lens model.");
+      throw new Error("Truth Lens model endpoint is not configured (via NEXT_PUBLIC_CUSTOM_ML_API_URL). Please contact support or check the application settings.");
     }
 
     let response;
@@ -79,16 +79,16 @@ const predictFakeNews = ai.defineTool(
         } catch (e) {
           console.warn("Failed to read error body as text from ML API response after non-ok status.");
         }
-        console.error(`Custom ML API request failed with status ${response.status}. Body: ${errorBody.substring(0, 500)}...`);
-        throw new Error(`The custom ML model service responded with an error (status ${response.status}). It might be temporarily unavailable or misconfigured.`);
+        console.error(`Truth Lens ML API request failed with status ${response.status}. Body: ${errorBody.substring(0, 500)}...`);
+        throw new Error(`The Truth Lens model service responded with an error (status ${response.status}). It might be temporarily unavailable or misconfigured.`);
       }
 
       let data;
       try {
         data = await response.json();
       } catch (jsonError: any) {
-        console.error('Failed to parse JSON response from ML API:', jsonError);
-        let responseText = 'Could not retrieve raw text from ML API response.';
+        console.error('Failed to parse JSON response from Truth Lens ML API:', jsonError);
+        let responseText = 'Could not retrieve raw text from Truth Lens ML API response.';
         try {
             if (response && typeof response.text === 'function') {
                  responseText = await response.text();
@@ -96,8 +96,8 @@ const predictFakeNews = ai.defineTool(
         } catch (textReadError) {
             console.warn("Failed to read response text after JSON parsing error.");
         }
-        console.error('Raw ML API response snippet (if available):', responseText.substring(0, 500) + '...');
-        throw new Error('The custom ML model service returned an invalid response format (expected JSON). Please report this issue.');
+        console.error('Raw Truth Lens ML API response snippet (if available):', responseText.substring(0, 500) + '...');
+        throw new Error('The Truth Lens model service returned an invalid response format (expected JSON). Please report this issue.');
       }
       
 
@@ -110,30 +110,30 @@ const predictFakeNews = ai.defineTool(
           confidence: parseFloat(confidence.toFixed(1)),
         };
       } else {
-        console.error('Unexpected response data structure from ML API:', data);
-        throw new Error('The custom ML model service returned an unexpected data structure. Please report this issue.');
+        console.error('Unexpected response data structure from Truth Lens ML API:', data);
+        throw new Error('The Truth Lens model service returned an unexpected data structure. Please report this issue.');
       }
     } catch (error: any) {
       console.error('Full error caught in predictFakeNews tool:', error); 
       
       if (error instanceof Error) {
         // Re-throw specific, user-friendly errors directly.
-        if (error.message.startsWith('The custom ML model service responded with an error') ||
-            error.message.startsWith('Custom ML model endpoint is not configured') ||
-            error.message.startsWith('The custom ML model service returned an invalid response format') ||
-            error.message.startsWith('The custom ML model service returned an unexpected data structure')) {
+        if (error.message.startsWith('The Truth Lens model service responded with an error') ||
+            error.message.startsWith('Truth Lens model endpoint is not configured') ||
+            error.message.startsWith('The Truth Lens model service returned an invalid response format') ||
+            error.message.startsWith('The Truth Lens model service returned an unexpected data structure')) {
           throw error; 
         }
         // Handle generic fetch errors (e.g., network down, DNS issues)
         if (error.name === 'TypeError' && error.message === 'Failed to fetch') { // Common in browsers for network errors
-             throw new Error("Network connection failed: Could not reach the custom ML model service. Please check your internet connection or if the service is running.");
+             throw new Error("Network connection failed: Could not reach the Truth Lens model service. Please check your internet connection or if the service is running.");
         }
-        throw new Error(`Error communicating with the custom ML model: ${error.message}. Please try again or contact support if the issue persists.`);
+        throw new Error(`Error communicating with the Truth Lens model: ${error.message}. Please try again or contact support if the issue persists.`);
       } else if (typeof error === 'string') {
-        throw new Error(`An issue occurred with the custom ML model: ${error}`);
+        throw new Error(`An issue occurred with the Truth Lens model: ${error}`);
       }
       // Fallback for unknown error structures
-      throw new Error("An unexpected issue occurred while using the custom ML model. Please try again.");
+      throw new Error("An unexpected issue occurred while using the Truth Lens model. Please try again.");
     }
   }
 );
@@ -161,8 +161,7 @@ const detectFakeNewsFlow = ai.defineFlow(
         if (error instanceof Error) {
             throw error; // Re-throw the specific error from the tool
         }
-        throw new Error("An unexpected error occurred while analyzing the article with the custom model.");
+        throw new Error("An unexpected error occurred while analyzing the article with the Truth Lens model.");
     }
   }
 );
-
