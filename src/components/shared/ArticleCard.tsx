@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge, badgeVariants } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button'; // Added buttonVariants import
 import type { GeneratedArticle, DetectedArticle, Article, FactCheckResult } from '@/types';
 import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download, Trash2, MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
@@ -679,9 +679,4 @@ ${factChecksMd.trim()}
     </Card>
   );
 }
-
-// const buttonVariants = ({ variant }: { variant: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | null | undefined }) => {
-//   if (variant === "destructive") return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
-//   return "bg-primary text-primary-foreground hover:bg-primary/90";
-// };
 
