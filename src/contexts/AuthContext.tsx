@@ -9,6 +9,7 @@ import {
   signOut as firebaseSignOut,
   auth,
   sendPasswordReset,
+  updateUserPasswordInFirebase, // Added
 } from '@/lib/firebase';
 import type { User as AuthUserType } from '@/types';
 import type { User as FirebaseUserType } from 'firebase/auth';
@@ -21,6 +22,7 @@ const AuthContext = createContext<{
   signUp: (email?: string, password?: string, displayName?: string) => Promise<void>;
   signOut: () => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
+  updateUserPassword: (newPassword: string) => Promise<void>; // Added
 } | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -126,17 +128,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!email) {
       throw new Error("Email is required.");
     }
-    // setLoading(true); // Optional: manage loading state if needed for UI
     try {
       await sendPasswordReset(email);
     } catch (error) {
       console.error("Send password reset email error in AuthContext:", error);
-      // setLoading(false); // Optional
-      throw error; // Re-throw to be caught by the calling component (LoginForm)
-    } finally {
-      // setLoading(false); // Optional
+      throw error; 
     }
   }, []);
+
+  const updateUserPassword = useCallback(async (newPassword: string) => {
+    if (!newPassword) {
+      throw new Error("New password is required.");
+    }
+    // setLoading(true); // Consider if global loading is desired for this action
+    try {
+      await updateUserPasswordInFirebase(newPassword);
+    } catch (error) {
+      console.error("Update password error in AuthContext:", error);
+      // setLoading(false);
+      throw error; // Re-throw to be caught by the calling component
+    } finally {
+      // setLoading(false);
+    }
+  }, []);
+
 
   useEffect(() => {
     const protectedRoutes = ['/dashboard', '/generator', '/detector', '/saved', '/profile', '/settings'];
@@ -148,7 +163,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, sendPasswordResetEmail }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, sendPasswordResetEmail, updateUserPassword }}>
       {children}
     </AuthContext.Provider>
   );

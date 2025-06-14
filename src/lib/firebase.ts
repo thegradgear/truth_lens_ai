@@ -7,6 +7,7 @@ import {
   signOut as firebaseSignOutAuth, 
   updateProfile, 
   sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+  updatePassword as firebaseUpdatePassword, // Added for changing password
   type User as FirebaseUser 
 } from 'firebase/auth';
 import { 
@@ -127,22 +128,34 @@ export const sendPasswordReset = async (email: string) => {
     await firebaseSendPasswordResetEmail(auth, email);
   } catch (error: any) {
     console.error("Firebase password reset error:", error);
-    // Firebase typically doesn't confirm if an email exists for security reasons.
-    // So, we often show a generic message to the user.
-    // However, we'll throw the specific error for the AuthContext to handle.
     if (error.code === 'auth/invalid-email') {
         throw new Error("The email address is not valid.");
     }
     if (error.code === 'auth/user-not-found') {
-        // Even if user not found, Firebase sends no specific error to client for security
-        // but internally it knows. We will rely on a generic success message in UI.
-        // We can still throw a generic internal error if needed for logging, but
-        // the `sendPasswordResetEmail` itself doesn't error out client-side for "user not found" typically.
-        // It just doesn't send an email.
-        // For now, just re-throw the message for consistency.
          throw new Error("Failed to send password reset email. Please check the email address.");
     }
     throw new Error(error.message || "Failed to send password reset email. Please try again.");
+  }
+};
+
+export const updateUserPasswordInFirebase = async (newPassword: string): Promise<void> => {
+  if (!auth.currentUser) {
+    throw new Error("No authenticated user found. Please sign in again.");
+  }
+  if (!newPassword) {
+    throw new Error("New password cannot be empty.");
+  }
+  try {
+    await firebaseUpdatePassword(auth.currentUser, newPassword);
+  } catch (error: any) {
+    console.error("Firebase update password error:", error);
+    if (error.code === 'auth/requires-recent-login') {
+      throw new Error("This operation is sensitive and requires recent authentication. Please sign out and sign back in, then try changing your password again.");
+    }
+    if (error.code === 'auth/weak-password') {
+      throw new Error("The new password is too weak. Please choose a stronger password.");
+    }
+    throw new Error(error.message || "Failed to update password. Please try again.");
   }
 };
 
