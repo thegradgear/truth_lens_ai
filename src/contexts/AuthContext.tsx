@@ -7,7 +7,8 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
-  auth
+  auth,
+  sendPasswordReset,
 } from '@/lib/firebase';
 import type { User as AuthUserType } from '@/types';
 import type { User as FirebaseUserType } from 'firebase/auth';
@@ -19,6 +20,7 @@ const AuthContext = createContext<{
   signIn: (email?: string, password?: string) => Promise<void>;
   signUp: (email?: string, password?: string, displayName?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
 } | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -120,6 +122,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [router]);
 
+  const sendPasswordResetEmail = useCallback(async (email: string) => {
+    if (!email) {
+      throw new Error("Email is required.");
+    }
+    // setLoading(true); // Optional: manage loading state if needed for UI
+    try {
+      await sendPasswordReset(email);
+    } catch (error) {
+      console.error("Send password reset email error in AuthContext:", error);
+      // setLoading(false); // Optional
+      throw error; // Re-throw to be caught by the calling component (LoginForm)
+    } finally {
+      // setLoading(false); // Optional
+    }
+  }, []);
+
   useEffect(() => {
     const protectedRoutes = ['/dashboard', '/generator', '/detector', '/saved', '/profile', '/settings'];
     if (!loading && !user && protectedRoutes.includes(pathname)) {
@@ -130,7 +148,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, sendPasswordResetEmail }}>
       {children}
     </AuthContext.Provider>
   );

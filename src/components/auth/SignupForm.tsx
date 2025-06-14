@@ -23,7 +23,12 @@ import React, { useState } from "react";
 const signupFormSchema = z.object({
   displayName: z.string().min(2, { message: "Display name must be at least 2 characters." }).max(50, { message: "Display name cannot exceed 50 characters."}),
   email: z.string().email({ message: "Invalid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  password: z.string()
+    .min(8, { message: "Password must be at least 8 characters." })
+    .regex(/(?=.*[a-z])/, { message: "Password must contain at least one lowercase letter." })
+    .regex(/(?=.*[A-Z])/, { message: "Password must contain at least one uppercase letter." })
+    .regex(/(?=.*\d)/, { message: "Password must contain at least one number." })
+    .regex(/(?=.*[@$!%*?&])/, { message: "Password must contain at least one special character (@$!%*?&)." }),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",

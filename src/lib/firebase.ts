@@ -6,6 +6,7 @@ import {
   createUserWithEmailAndPassword as firebaseCreateUserWithEmailAndPassword, 
   signOut as firebaseSignOutAuth, 
   updateProfile, 
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   type User as FirebaseUser 
 } from 'firebase/auth';
 import { 
@@ -118,6 +119,33 @@ export const signOut = async () => {
   }
 };
 
+export const sendPasswordReset = async (email: string) => {
+  if (!email) {
+    throw new Error("Email is required to send a password reset link.");
+  }
+  try {
+    await firebaseSendPasswordResetEmail(auth, email);
+  } catch (error: any) {
+    console.error("Firebase password reset error:", error);
+    // Firebase typically doesn't confirm if an email exists for security reasons.
+    // So, we often show a generic message to the user.
+    // However, we'll throw the specific error for the AuthContext to handle.
+    if (error.code === 'auth/invalid-email') {
+        throw new Error("The email address is not valid.");
+    }
+    if (error.code === 'auth/user-not-found') {
+        // Even if user not found, Firebase sends no specific error to client for security
+        // but internally it knows. We will rely on a generic success message in UI.
+        // We can still throw a generic internal error if needed for logging, but
+        // the `sendPasswordResetEmail` itself doesn't error out client-side for "user not found" typically.
+        // It just doesn't send an email.
+        // For now, just re-throw the message for consistency.
+         throw new Error("Failed to send password reset email. Please check the email address.");
+    }
+    throw new Error(error.message || "Failed to send password reset email. Please try again.");
+  }
+};
+
 
 export const saveArticle = async (userId: string, articleDataToSave: Omit<Article, 'id' | 'timestamp'> & { timestamp?: any }) => {
   if (!userId) {
@@ -205,4 +233,3 @@ export const deleteArticle = async (userId: string, articleId: string): Promise<
     throw new Error("Failed to delete article. " + ((error as Error).message || "An unknown error occurred. Please try again."));
   }
 };
-
