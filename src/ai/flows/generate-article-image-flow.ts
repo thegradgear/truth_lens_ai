@@ -28,7 +28,17 @@ export type GenerateArticleImageOutput = z.infer<typeof GenerateArticleImageOutp
 export async function generateArticleImage(
   input: GenerateArticleImageInput
 ): Promise<GenerateArticleImageOutput> {
-  return generateArticleImageFlow(input);
+  try {
+    return await generateArticleImageFlow(input);
+  } catch (error: any) {
+    console.error("Error in generateArticleImage flow execution:", error);
+    // Ensure a user-friendly message is thrown, using the specific one if available.
+    const message = error.message || 'An unexpected error occurred during image generation and upload.';
+    if (message.startsWith('AI image generation') || message.startsWith('Failed to store generated image') || message.startsWith('Cloudinary service is not configured')) {
+      throw new Error(message); // Propagate already user-friendly messages
+    }
+    throw new Error(`Image generation process failed: ${message}`);
+  }
 }
 
 const generateArticleImageFlow = ai.defineFlow(
@@ -43,7 +53,6 @@ const generateArticleImageFlow = ai.defineFlow(
     if (input.customPrompt && input.customPrompt.trim() !== '') {
       imagePromptText = input.customPrompt;
     } else {
-      // Refined default prompt to strongly discourage text and focus on the topic
       imagePromptText = `Create a high-quality, visually compelling image that directly represents the core essence of the topic: "${input.topic}".`;
       imagePromptText += ` This image is intended as a header for a news article in the "${input.category}" category.`;
       if (input.articleSnippet) {
@@ -93,40 +102,36 @@ const generateArticleImageFlow = ai.defineFlow(
               detailedErrorMsg += ` Finish message: "${candidate.finishMessage}".`;
             }
             if (candidate.finishReason === 'SAFETY' && !candidate.media?.url) {
-                detailedErrorMsg += ' Image generation may have been blocked due to safety filters.';
+                detailedErrorMsg += ' Image generation may have been blocked due to safety filters. Try a different prompt.';
             }
             logDetails.candidates.push(candInfo);
           });
         }
         console.error('AI Image Generation Failure:', detailedErrorMsg, 'Details:', JSON.stringify(logDetails, null, 2));
-        // This specific error is for when the AI responds, but without an image.
         throw new Error(detailedErrorMsg);
       }
     } catch (error: any) {
-      // Log the full error object for server-side debugging, especially for API errors.
       console.error('Full error object during AI image generation attempt:', error);
-
-      // Check if it's the custom error we threw above (AI responded without image)
       if (error instanceof Error && error.message.startsWith('AI image generation did not return a valid media URL.')) {
-        // Re-throw our detailed custom error as is. The message already contains AI's textual response.
-        throw new Error(error.message);
+        throw error;
       }
-
-      // Handle other errors, including external API errors (like 500s from Google)
       let detailedErrorMessage = 'An unexpected error occurred during AI image generation.';
       if (error instanceof Error) {
-        detailedErrorMessage = error.message; // This often contains info like "500 Internal Server Error"
+        detailedErrorMessage = error.message;
       } else if (typeof error === 'string') {
         detailedErrorMessage = error;
       }
       
-      // If the error message indicates a Google API error, frame it specifically.
       if (detailedErrorMessage.includes('GoogleGenerativeAI Error') || detailedErrorMessage.includes('googleapis.com')) {
+        // Extract a more specific message if it's a known API error format
+        const match = detailedErrorMessage.match(/\[(\d{3}) [^\]]+\] (.*)/); // e.g. [500 Internal Server Error] The service is temporarily unavailable.
+        if (match && match[2]) {
+             throw new Error(`AI image generation API request failed: ${match[2]}. This may be a temporary issue with the AI service. Please try again later.`);
+        }
         throw new Error(`AI image generation API request failed: ${detailedErrorMessage}. This may be a temporary issue with the AI service. Please try again later.`);
       }
-
       // Fallback for other types of unexpected errors during image data generation phase.
-      throw new Error(`Failed to generate image data due to an unexpected issue: ${detailedErrorMessage}`);
+      throw new Error(`Failed to generate image data due to an unexpected issue: ${detailedErrorMessage}. Try modifying your prompt or try again later.`);
     }
 
     // Upload to Cloudinary

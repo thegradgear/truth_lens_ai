@@ -35,7 +35,12 @@ const DetectFakeNewsOutputSchema = z.object({
 export type DetectFakeNewsOutput = z.infer<typeof DetectFakeNewsOutputSchema>;
 
 export async function detectFakeNews(input: DetectFakeNewsInput): Promise<DetectFakeNewsOutput> {
-  return detectFakeNewsFlow(input);
+  try {
+    return await detectFakeNewsFlow(input);
+  } catch (error: any) {
+    console.error("Error in detectFakeNews flow execution:", error);
+    throw new Error(`Failed to detect news authenticity: ${error.message || 'An unexpected error occurred in the detection flow.'}`);
+  }
 }
 
 const predictFakeNews = ai.defineTool(
@@ -54,7 +59,7 @@ const predictFakeNews = ai.defineTool(
     const apiUrl = process.env.NEXT_PUBLIC_CUSTOM_ML_API_URL;
     if (!apiUrl) {
       console.error("NEXT_PUBLIC_CUSTOM_ML_API_URL is not set. Cannot call custom ML model.");
-      throw new Error("Custom ML model endpoint is not configured. Please set NEXT_PUBLIC_CUSTOM_ML_API_URL.");
+      throw new Error("Custom ML model endpoint is not configured. Please contact support or check the application settings.");
     }
 
     let response;
@@ -75,7 +80,7 @@ const predictFakeNews = ai.defineTool(
           console.warn("Failed to read error body as text from ML API response after non-ok status.");
         }
         console.error(`Custom ML API request failed with status ${response.status}. Body: ${errorBody.substring(0, 500)}...`);
-        throw new Error(`The custom ML model service responded with an error (status ${response.status}). Please check the service configuration or logs.`);
+        throw new Error(`The custom ML model service responded with an error (status ${response.status}). It might be temporarily unavailable or misconfigured.`);
       }
 
       let data;
@@ -85,15 +90,14 @@ const predictFakeNews = ai.defineTool(
         console.error('Failed to parse JSON response from ML API:', jsonError);
         let responseText = 'Could not retrieve raw text from ML API response.';
         try {
-            // Re-use the response object if available, or try to get text from a new one if it was consumed
             if (response && typeof response.text === 'function') {
-                 responseText = await response.text(); // This might fail if response body already read or not text
+                 responseText = await response.text();
             }
         } catch (textReadError) {
             console.warn("Failed to read response text after JSON parsing error.");
         }
         console.error('Raw ML API response snippet (if available):', responseText.substring(0, 500) + '...');
-        throw new Error('The custom ML model service returned an invalid response format (expected JSON).');
+        throw new Error('The custom ML model service returned an invalid response format (expected JSON). Please report this issue.');
       }
       
 
@@ -107,28 +111,29 @@ const predictFakeNews = ai.defineTool(
         };
       } else {
         console.error('Unexpected response data structure from ML API:', data);
-        throw new Error('The custom ML model service returned an unexpected data structure after successful fetch.');
+        throw new Error('The custom ML model service returned an unexpected data structure. Please report this issue.');
       }
     } catch (error: any) {
       console.error('Full error caught in predictFakeNews tool:', error); 
       
-      let errorMessage = "Failed to communicate with or process response from the custom ML model.";
       if (error instanceof Error) {
-        // Check if it's one of our specific errors thrown above and re-throw it directly.
+        // Re-throw specific, user-friendly errors directly.
         if (error.message.startsWith('The custom ML model service responded with an error') ||
             error.message.startsWith('Custom ML model endpoint is not configured') ||
             error.message.startsWith('The custom ML model service returned an invalid response format') ||
             error.message.startsWith('The custom ML model service returned an unexpected data structure')) {
           throw error; 
         }
-        errorMessage += ` Details: ${error.message}`;
+        // Handle generic fetch errors (e.g., network down, DNS issues)
+        if (error.name === 'TypeError' && error.message === 'Failed to fetch') { // Common in browsers for network errors
+             throw new Error("Network connection failed: Could not reach the custom ML model service. Please check your internet connection or if the service is running.");
+        }
+        throw new Error(`Error communicating with the custom ML model: ${error.message}. Please try again or contact support if the issue persists.`);
       } else if (typeof error === 'string') {
-        errorMessage += ` Details: ${error}`;
-      } else {
-        errorMessage += " An unknown error structure was caught during the operation."
+        throw new Error(`An issue occurred with the custom ML model: ${error}`);
       }
-      // Ensure a new Error object is always thrown for generic/unexpected cases.
-      throw new Error(errorMessage);
+      // Fallback for unknown error structures
+      throw new Error("An unexpected issue occurred while using the custom ML model. Please try again.");
     }
   }
 );
@@ -140,14 +145,24 @@ const detectFakeNewsFlow = ai.defineFlow(
     outputSchema: DetectFakeNewsOutputSchema,
   },
   async (input) => {
-    const toolOutput = await predictFakeNews(input);
-    if (!toolOutput || toolOutput.label === undefined || toolOutput.confidence === undefined) {
-        throw new Error("The ML model tool did not return a valid prediction structure.");
+    try {
+      const toolOutput = await predictFakeNews(input);
+      if (!toolOutput || toolOutput.label === undefined || toolOutput.confidence === undefined) {
+          console.error('Invalid prediction structure from predictFakeNews tool:', toolOutput);
+          throw new Error("The ML model tool did not return a valid prediction. Please report this issue.");
+      }
+      return {
+        label: toolOutput.label,
+        confidence: toolOutput.confidence,
+      };
+    } catch (error: any) {
+        console.error("Error during detectFakeNewsFlow execution, calling predictFakeNews tool:", error);
+        // Propagate the error from the tool, or a generic one if it's not an Error instance
+        if (error instanceof Error) {
+            throw error; // Re-throw the specific error from the tool
+        }
+        throw new Error("An unexpected error occurred while analyzing the article with the custom model.");
     }
-    return {
-      label: toolOutput.label,
-      confidence: toolOutput.confidence,
-    };
   }
 );
 

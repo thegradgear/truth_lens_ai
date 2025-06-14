@@ -43,30 +43,42 @@ const externalFactCheckerTool = ai.defineTool(
     outputSchema: z.array(FactCheckResultSchema),
   },
   async (input) => {
-    // In a real implementation, this would call an external API (e.g., Google Fact Check API)
-    // For now, returning mock data.
-    console.log("Mock externalFactCheckerTool called with text snippet:", input.articleText.substring(0, 100) + "...");
-    // Simulate some processing time
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Randomly decide if we "find" any mock fact checks
-    if (Math.random() > 0.7) {
-        return [
-            {
-                source: "MockCheck.org",
-                claimReviewed: "A key claim from the article (mocked)",
-                rating: Math.random() > 0.5 ? "Potentially Misleading (Mock)" : "Partially True (Mock)",
-                url: "https://example.com/mock-fact-check"
-            }
-        ];
+    try {
+        // In a real implementation, this would call an external API (e.g., Google Fact Check API)
+        console.log("Mock externalFactCheckerTool called with text snippet:", input.articleText.substring(0, 100) + "...");
+        // Simulate some processing time
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Randomly decide if we "find" any mock fact checks
+        if (Math.random() > 0.7) {
+            return [
+                {
+                    source: "MockCheck.org",
+                    claimReviewed: "A key claim from the article (mocked)",
+                    rating: Math.random() > 0.5 ? "Potentially Misleading (Mock)" : "Partially True (Mock)",
+                    url: "https://example.com/mock-fact-check"
+                }
+            ];
+        }
+        return [];
+    } catch (toolError: any) {
+        console.error("Error in externalFactCheckerTool (mock):", toolError);
+        // Even for a mock tool, it's good practice to handle errors.
+        // In a real tool, you'd throw an error that the calling flow can handle.
+        // For this mock, we'll just return an empty array to simulate failure.
+        return []; // Or: throw new Error(`Mock fact-checking tool failed: ${toolError.message}`);
     }
-    return [];
   }
 );
 
 
 export async function llmDetectFakeNews(input: LlmDetectFakeNewsInput): Promise<LlmDetectFakeNewsOutput> {
-  return llmDetectFakeNewsFlow(input);
+  try {
+    return await llmDetectFakeNewsFlow(input);
+  } catch (error: any) {
+    console.error("Error in llmDetectFakeNews flow execution:", error);
+    throw new Error(`LLM-based detection failed: ${error.message || 'An unexpected error occurred in the LLM detection flow.'}`);
+  }
 }
 
 const llmDetectFakeNewsPrompt = ai.definePrompt({
@@ -84,6 +96,15 @@ If the article contains verifiable claims, consider using the 'externalFactCheck
 Article Text:
 {{{articleText}}}
 `,
+  // Basic safety settings - adjust as needed
+  config: {
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+    ],
+  },
 });
 
 const llmDetectFakeNewsFlow = ai.defineFlow(
@@ -93,24 +114,52 @@ const llmDetectFakeNewsFlow = ai.defineFlow(
     outputSchema: LlmDetectFakeNewsOutputSchema,
   },
   async (input) => {
-    const {output} = await llmDetectFakeNewsPrompt(input);
-    if (!output) {
-      throw new Error('The LLM did not return a valid detection response.');
-    }
-    if (typeof output.confidence === 'string') {
-        output.confidence = parseFloat(output.confidence);
-    }
-    if (isNaN(output.confidence)) {
-        output.confidence = 50;
-        console.warn("LLM returned non-numeric confidence, defaulted to 50.");
-    }
-    output.confidence = Math.max(0, Math.min(100, parseFloat(output.confidence.toFixed(1))));
+    try {
+      const {output, candidates} = await llmDetectFakeNewsPrompt(input);
+      if (!output) {
+        if (candidates && candidates.length > 0) {
+            const firstCandidate = candidates[0];
+            if (firstCandidate.finishReason === 'SAFETY') {
+                console.warn('LLM detection blocked by safety filters for input:', input.articleText.substring(0,100), 'Finish message:', firstCandidate.finishMessage);
+                throw new Error("The AI could not analyze this article due to safety content policies. Please try different content.");
+            }
+             if (firstCandidate.finishReason === 'RECITATION') {
+                 console.warn('LLM detection blocked due to recitation policy for input:', input.articleText.substring(0,100), 'Finish message:', firstCandidate.finishMessage);
+                throw new Error("The AI could not analyze this article as it might resemble copyrighted material. Please try different content.");
+            }
+        }
+        console.error('LLM detection failed: AI did not return a valid detection structure for input:', input.articleText.substring(0,100));
+        throw new Error('The LLM AI model did not return a valid detection response. Please try again later.');
+      }
 
-    if (output.justification && typeof output.justification !== 'string') {
-        output.justification = JSON.stringify(output.justification);
+      if (typeof output.confidence === 'string') {
+          output.confidence = parseFloat(output.confidence);
+      }
+      if (isNaN(output.confidence) || output.confidence === undefined || output.confidence === null) {
+          console.warn("LLM returned non-numeric or missing confidence, defaulted to 50 for input:", input.articleText.substring(0,100), "Received confidence:", output.confidence);
+          output.confidence = 50; // Default confidence if parsing fails or value is invalid
+      }
+      output.confidence = Math.max(0, Math.min(100, parseFloat(output.confidence.toFixed(1))));
+
+      if (!output.label) {
+          console.warn("LLM returned missing label, defaulted to 'Fake' for input:", input.articleText.substring(0,100));
+          output.label = 'Fake'; // Default label if missing
+      }
+      
+      // Ensure justification is a string if it exists
+      if (output.justification && typeof output.justification !== 'string') {
+          console.warn("LLM returned non-string justification, attempting to stringify for input:", input.articleText.substring(0,100));
+          output.justification = JSON.stringify(output.justification);
+      }
+      
+      return output;
+    } catch (error: any) {
+        console.error("Error during LLM detection prompt execution:", error);
+         if (error instanceof Error && (error.message.includes("safety content policies") || error.message.includes("copyrighted material") || error.message.includes("AI model did not return a valid detection response"))) {
+            throw error; // Re-throw specific errors
+        }
+        throw new Error(`LLM-based analysis encountered an issue: ${error.message || 'Unknown error'}. Please try again.`);
     }
-    
-    return output;
   }
 );
 
