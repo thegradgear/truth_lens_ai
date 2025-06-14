@@ -146,14 +146,14 @@ export function AppNavbar() {
         <div className="flex items-center mr-auto md:mr-6">
           <Logo />
         </div>
-
-        {/* Navigation for large screens (lg and up) */}
-        <nav className="hidden lg:flex items-center space-x-1 mx-auto">
-          <NavLinks />
-        </nav>
         
-        <div className="flex items-center space-x-2 md:space-x-3 ml-auto">
-           {/* ThemeToggle visible on lg and up here */}
+        <div className="flex items-center space-x-1 md:space-x-2 ml-auto">
+          {/* Navigation for large screens (lg and up) - Moved to the right */}
+          <nav className="hidden lg:flex items-center space-x-1">
+            <NavLinks />
+          </nav>
+          
+          {/* ThemeToggle visible on lg and up here */}
           <div className="hidden lg:block">
             <ThemeToggle align="end"/>
           </div>
