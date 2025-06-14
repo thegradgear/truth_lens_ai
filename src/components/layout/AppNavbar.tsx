@@ -42,8 +42,8 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/generator', label: 'Generator', icon: PenTool },
   { href: '/detector', label: 'Detector', icon: ScanText },
-  { href: '/saved', label: 'Saved History', icon: Bookmark },
   { href: '/playgame', label: 'Play Game', icon: Puzzle },
+  { href: '/saved', label: 'Saved History', icon: Bookmark },
 ];
 
 const userMenuItems = [
