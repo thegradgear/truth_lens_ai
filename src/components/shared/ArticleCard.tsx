@@ -382,34 +382,45 @@ ${factChecksMd.trim()}
         </div>
       )}
 
-      <CardHeader> {/* Default ShadCN CardHeader is flex-col space-y-1.5 p-6 */}
-        <div className="flex items-start justify-between w-full"> {/* Top row for Title and Action Menu */}
-          <CardTitle className="font-headline text-xl flex items-center mr-2"> {/* Title part */}
+      <CardHeader>
+        <div className="flex items-center justify-between w-full"> 
+          <CardTitle className="font-headline text-xl flex items-center mr-2 flex-grow">
             {isGenerated ? (
-              <Bot className="mr-2 h-6 w-6 text-primary" />
+              <Bot className="mr-2 h-6 w-6 text-primary shrink-0" />
             ) : (
               resultLabel === 'Real' ?
-              <CheckCircle className="mr-2 h-6 w-6 text-green-500" /> :
-              <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
+              <CheckCircle className="mr-2 h-6 w-6 text-green-500 shrink-0" /> :
+              <AlertTriangle className="mr-2 h-6 w-6 text-destructive shrink-0" />
             )}
-            {cardTitle}
+            <span className="truncate">{cardTitle}</span>
           </CardTitle>
-          {/* Action Menu, aligned to the right of the title */}
-          {article.id && onDelete && user?.uid && (
-            <div className="shrink-0"> 
-              <ActionMenu />
-            </div>
-          )}
+          
+          <div className="flex items-center shrink-0 ml-auto">
+            {!isGenerated && detectedArticleData && (
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                     <Badge variant={resultLabel === 'Real' ? 'success' : 'destructive'} className="mr-2">
+                        {resultLabel}
+                      </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>This article is predicted as {resultLabel} by the AI model.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            {article.id && onDelete && user?.uid && <ActionMenu />}
+          </div>
         </div>
 
-        {/* Description: Confidence for Detected, Topic/Cat/Tone for Generated */}
         {!isGenerated && detectedArticleData && (
-          <CardDescription> {/* This will appear on the next line due to CardHeader's flex-col */}
+          <CardDescription className="mt-1">
             Confidence: {confidenceScore}%
           </CardDescription>
         )}
         {isGenerated && (
-          <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1">
+          <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
             <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
             <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Category: {(articleData as GeneratedArticle).category}</span>
             <span className="flex items-center"><MessageSquareQuote className="mr-1 h-3 w-3" /> Tone: {(articleData as GeneratedArticle).tone}</span>
@@ -465,23 +476,6 @@ ${factChecksMd.trim()}
             </div>
            </>
         )}
-        {/* Badge for Detected Articles moved here */}
-        {!isGenerated && detectedArticleData && (
-          <div className="mt-4"> 
-            <TooltipProvider delayDuration={0}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant={resultLabel === 'Real' ? 'success' : 'destructive'}>
-                    {resultLabel}
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>This article is predicted as {resultLabel} by the AI model.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        )}
       </CardContent>
 
       <CardFooter className="flex flex-col xs:flex-row justify-between items-start xs:items-center border-t pt-4 gap-2">
@@ -536,3 +530,4 @@ ${factChecksMd.trim()}
     </Card>
   );
 }
+
