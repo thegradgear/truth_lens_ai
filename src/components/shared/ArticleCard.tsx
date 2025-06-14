@@ -2,22 +2,12 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge, badgeVariants } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
-import type { GeneratedArticle, DetectedArticle, Article, FactCheckResult } from '@/types';
-import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download, Trash2, MoreVertical } from 'lucide-react';
+import type { GeneratedArticle, DetectedArticle, Article } from '@/types';
+import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download, Trash2, MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,18 +26,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useAuth } from '@/contexts/AuthContext';
 import { deleteArticle as deleteArticleFromDb } from '@/lib/firebase';
 
-
-const MAX_CONTENT_LINES = 6;
 
 // Helper function to process justification for summary display
 const getJustificationSummary = (fullJustification?: string): string[] => {
@@ -56,43 +43,25 @@ const getJustificationSummary = (fullJustification?: string): string[] => {
     .split('\n')
     .map(item => item.trim().replace(/^[-*]\s*/, '').trim())
     .filter(s => s.length > 0)
-    .slice(0, 3);
+    .slice(0, 3); // Keep this for card summary if needed, or display all
 };
 
 export interface ArticleCardProps {
   article: Article;
-  onSave?: (articleToSave: Article) => Promise<void>; // Kept for potential future use if save comes back
-  showSaveButton?: boolean; // Kept for potential future use
-  isSaving?: boolean; // Kept for potential future use
   onDelete?: (articleId: string) => Promise<void>;
 }
 
-export function ArticleCard({ article, onSave, showSaveButton = false, isSaving = false, onDelete }: ArticleCardProps) {
+export function ArticleCard({ article, onDelete }: ArticleCardProps) {
   const { user } = useAuth();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showReadMoreButton, setShowReadMoreButton] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-
   const isGenerated = article.type === 'generated';
   const articleData = article as GeneratedArticle | DetectedArticle;
 
   const fullText = isGenerated ? (articleData as GeneratedArticle).content : (articleData as DetectedArticle).text;
-
-  useEffect(() => {
-    if (contentRef.current) {
-      const timer = setTimeout(() => {
-        if (contentRef.current) {
-          setShowReadMoreButton(contentRef.current.scrollHeight > contentRef.current.clientHeight);
-        }
-      }, 100); 
-      return () => clearTimeout(timer);
-    }
-  }, [fullText, isModalOpen]); 
 
   const handleDeleteConfirm = async () => {
     if (!user?.uid || !article.id || !onDelete) return;
@@ -306,7 +275,7 @@ ${factChecksMd.trim()}
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
 
-      const ratio = canvasWidth / canvasHeight;
+      // const ratio = canvasWidth / canvasHeight; // Not directly used in this multi-page logic
       const imgWidthInPdf = pdfWidth - 40; 
       let position = 20; 
       let remainingCanvasHeight = canvasHeight;
@@ -317,7 +286,7 @@ ${factChecksMd.trim()}
         const pageCtx = pageCanvas.getContext('2d');
         if (!pageCtx) throw new Error("Could not get 2D context for page canvas");
 
-        const maxContentHeightOnPage = (pdfHeight - 40) * (canvasWidth / imgWidthInPdf);
+        const maxContentHeightOnPage = (pdfHeight - 40) * (canvasWidth / imgWidthInPdf); // Max canvas pixels that fit on PDF page
         const segmentHeightOnCanvas = Math.min(remainingCanvasHeight, maxContentHeightOnPage);
 
         pageCanvas.width = canvasWidth;
@@ -327,9 +296,9 @@ ${factChecksMd.trim()}
         const pageImgData = pageCanvas.toDataURL('image/png');
         const segmentImgHeightInPdf = imgWidthInPdf * (segmentHeightOnCanvas / canvasWidth);
 
-        if (position !== 20) { 
+        if (position !== 20) { // If it's not the first segment (which starts at position 20)
           pdf.addPage();
-          position = 20;
+          position = 20; // Reset position for new page
         }
 
         pdf.addImage(pageImgData, 'PNG', 20, position, imgWidthInPdf, segmentImgHeightInPdf);
@@ -337,8 +306,8 @@ ${factChecksMd.trim()}
         remainingCanvasHeight -= segmentHeightOnCanvas;
         pageCanvasStartY += segmentHeightOnCanvas;
         
-        if (remainingCanvasHeight > 0) {
-           position = pdfHeight; 
+        if (remainingCanvasHeight > 0) { // If there's more content, prepare for a new page
+           position = pdfHeight; // Signal that next addImage should be on a new page (effectively)
         }
       }
 
@@ -367,9 +336,7 @@ ${factChecksMd.trim()}
   const factChecks = detectedArticleData?.factChecks;
   
   const aiGeneratedTitle = isGenerated ? (articleData as GeneratedArticle).title : null;
-  const modalTitle = aiGeneratedTitle || 'Full Article Text & Analysis';
-
-
+  
   const justificationSummaryPoints = useMemo(() => getJustificationSummary(justification), [justification]);
 
   const ActionMenu = () => (
@@ -414,10 +381,6 @@ ${factChecksMd.trim()}
       {isGenerated && (articleData as GeneratedArticle).imageUrl && (
         <div
           className="relative aspect-video w-full rounded-t-lg overflow-hidden border-b"
-          onClick={() => setIsModalOpen(true)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && setIsModalOpen(true)}
         >
           <Image
             src={(articleData as GeneratedArticle).imageUrl!}
@@ -429,7 +392,7 @@ ${factChecksMd.trim()}
       )}
 
       {isGenerated ? (
-        <CardHeader className='flex flex-row items-start justify-between' onClick={() => setIsModalOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && setIsModalOpen(true)}>
+        <CardHeader className='flex flex-row items-start justify-between'>
             <div className="flex-grow">
                 <CardTitle className="font-headline text-xl flex items-center">
                     <Bot className="mr-2 h-6 w-6 text-primary" />
@@ -446,7 +409,7 @@ ${factChecksMd.trim()}
             </div>
         </CardHeader>
       ) : (
-        <CardHeader className='flex flex-row items-start justify-between gap-2' onClick={() => setIsModalOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && setIsModalOpen(true)}>
+        <CardHeader className='flex flex-row items-start justify-between gap-2'>
             <div className="flex-grow">
                 <CardTitle className="font-headline text-xl flex items-center">
                 {resultLabel === 'Real' ?
@@ -477,108 +440,51 @@ ${factChecksMd.trim()}
         </CardHeader>
       )}
 
-      <CardContent className="flex-grow" onClick={() => setIsModalOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && setIsModalOpen(true)}>
-        <div
-          ref={contentRef}
-          className={cn(
-            'text-sm text-foreground m-0',
-            isModalOpen ? '' : `line-clamp-${MAX_CONTENT_LINES}`
-          )}
-        >
-          <p className="whitespace-pre-wrap">
-            {fullText}
-          </p>
+      <CardContent className="flex-grow">
+        <div className="text-sm text-foreground m-0">
+            <ScrollArea className="max-h-[300px] pr-3"> {/* Added ScrollArea for long content */}
+                <p className="whitespace-pre-wrap">
+                    {fullText}
+                </p>
+            </ScrollArea>
         </div>
 
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          {showReadMoreButton && !isModalOpen && (
-            <DialogTrigger asChild>
-              <Button variant="link" size="sm" className="p-0 h-auto mt-2 text-primary hover:underline" onClick={(e) => {e.stopPropagation(); setIsModalOpen(true); }}>
-                  <Eye className="mr-1 h-4 w-4"/>Read More / View Analysis
-              </Button>
-            </DialogTrigger>
-          )}
-          {isModalOpen && (
-            <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-4xl w-[90vw] max-h-[85vh] flex flex-col overflow-hidden">
-              <DialogHeader>
-                <DialogTitle className="truncate pr-8">{modalTitle}</DialogTitle>
-                {isGenerated && (
-                  <DialogDescription>
-                    Topic: {(articleData as GeneratedArticle).topic} | Category: {(articleData as GeneratedArticle).category} | Tone: {(articleData as GeneratedArticle).tone}
-                  </DialogDescription>
-                )}
-                 {!isGenerated && (
-                   <DialogDescription>
-                      AI-Powered Article Analysis. {detectedArticleData?.detectionMethod === 'llm' ? "LLM-based insights." : "Custom model result."}
-                  </DialogDescription>
-                )}
-              </DialogHeader>
-              <ScrollArea className="flex-1 min-h-0 rounded-md border p-4">
-                <p className="whitespace-pre-wrap text-sm">
-                  {fullText}
-                </p>
-                {!isGenerated && justification && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="font-semibold text-md mb-2 flex items-center"><FileText className="mr-2 h-5 w-5 text-primary"/>AI Justification:</h4>
-                    <ul className="list-disc list-inside text-sm space-y-1 pl-2 text-muted-foreground">
-                      {justification.split('\n').map((item, index) => {
-                        const cleanedItem = item.trim().replace(/^[-*]\s*/, '');
-                        return cleanedItem.length > 0 && <li key={index}>{cleanedItem}</li>;
-                      })}
-                    </ul>
-                  </div>
-                )}
-                {!isGenerated && factChecks && factChecks.length > 0 && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="font-semibold text-md mb-2 flex items-center"><ListChecks className="mr-2 h-5 w-5 text-primary"/>External Fact-Checks (Mock Data):</h4>
-                    <div className="space-y-3">
-                      {factChecks.map((fc, index) => (
-                        <div key={index} className="p-3 border rounded-md bg-secondary/30">
-                          <p className="text-sm font-medium">{fc.claimReviewed}</p>
-                          <p className="text-xs text-muted-foreground">Source: {fc.source} - Rating: <span className="font-semibold">{fc.rating}</span></p>
-                          {fc.url && (
-                            <a href={fc.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center mt-1">
-                              View Source <ExternalLink className="ml-1 h-3 w-3"/>
-                            </a>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </ScrollArea>
-              <DialogFooter className="mt-4">
-                  <DialogClose asChild>
-                    <Button variant="outline">Close</Button>
-                  </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          )}
-        </Dialog>
-
-        {!isModalOpen && !showReadMoreButton && !isGenerated && justificationSummaryPoints.length > 0 && (
+        {!isGenerated && justification && (
           <>
             <Separator className="my-3" />
             <div>
-                <h4 className="font-semibold text-sm mb-1 flex items-center"><FileText className="mr-2 h-4 w-4 text-primary/80"/>AI Justification (Summary):</h4>
-                <div className="space-y-0.5">
-                    {justificationSummaryPoints.map((point, index) => (
-                        <p key={index} className="text-xs text-muted-foreground flex items-start">
-                           <span className="mr-1.5 mt-0.5">&bull;</span><span className="flex-1">{point}</span>
-                        </p>
-                    ))}
-                </div>
+                <h4 className="font-semibold text-md mb-2 flex items-center"><FileText className="mr-2 h-5 w-5 text-primary"/>AI Justification:</h4>
+                <ScrollArea className="max-h-[150px] pr-3"> {/* ScrollArea for justification */}
+                    <ul className="list-disc list-inside text-sm space-y-1 pl-2 text-muted-foreground">
+                    {justification.split('\n').map((item, index) => {
+                        const cleanedItem = item.trim().replace(/^[-*]\s*/, '');
+                        return cleanedItem.length > 0 && <li key={index}>{cleanedItem}</li>;
+                    })}
+                    </ul>
+                </ScrollArea>
             </div>
           </>
         )}
-         {!isModalOpen && !showReadMoreButton && !isGenerated && factChecks && factChecks.length > 0 && (
+         {!isGenerated && factChecks && factChecks.length > 0 && (
            <>
             <Separator className="my-3" />
             <div>
-                <h4 className="font-semibold text-sm mb-1 flex items-center"><ListChecks className="mr-2 h-4 w-4 text-primary/80"/>Fact-Checks (Mock Summary):</h4>
-                 <p className="text-xs text-muted-foreground">
-                    {factChecks.length} external source(s) reviewed. Click "Read More" for details.
-                </p>
+                <h4 className="font-semibold text-md mb-2 flex items-center"><ListChecks className="mr-2 h-5 w-5 text-primary"/>External Fact-Checks (Mock Data):</h4>
+                <ScrollArea className="max-h-[200px] pr-3"> {/* ScrollArea for fact checks */}
+                    <div className="space-y-3">
+                    {factChecks.map((fc, index) => (
+                        <div key={index} className="p-3 border rounded-md bg-secondary/30">
+                        <p className="text-sm font-medium">{fc.claimReviewed}</p>
+                        <p className="text-xs text-muted-foreground">Source: {fc.source} - Rating: <span className="font-semibold">{fc.rating}</span></p>
+                        {fc.url && (
+                            <a href={fc.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center mt-1">
+                            View Source <ExternalLink className="ml-1 h-3 w-3"/>
+                            </a>
+                        )}
+                        </div>
+                    ))}
+                    </div>
+                </ScrollArea>
             </div>
            </>
         )}
@@ -614,7 +520,6 @@ ${factChecksMd.trim()}
             </TooltipProvider>
           )}
         </div>
-        {/* Removed direct export/save buttons from here, they are in ActionMenu for saved items or on GeneratorPage */}
       </CardFooter>
 
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
@@ -637,3 +542,4 @@ ${factChecksMd.trim()}
     </Card>
   );
 }
+
