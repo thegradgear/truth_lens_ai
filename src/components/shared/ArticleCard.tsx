@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge, badgeVariants } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button'; // Added buttonVariants import
+import { Button, buttonVariants } from '@/components/ui/button';
 import type { GeneratedArticle, DetectedArticle, Article, FactCheckResult } from '@/types';
 import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download, Trash2, MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
@@ -61,9 +61,9 @@ const getJustificationSummary = (fullJustification?: string): string[] => {
 
 export interface ArticleCardProps {
   article: Article;
-  onSave?: (articleToSave: Article) => Promise<void>;
-  showSaveButton?: boolean;
-  isSaving?: boolean;
+  onSave?: (articleToSave: Article) => Promise<void>; // Kept for potential future use if save comes back
+  showSaveButton?: boolean; // Kept for potential future use
+  isSaving?: boolean; // Kept for potential future use
   onDelete?: (articleId: string) => Promise<void>;
 }
 
@@ -89,21 +89,10 @@ export function ArticleCard({ article, onSave, showSaveButton = false, isSaving 
         if (contentRef.current) {
           setShowReadMoreButton(contentRef.current.scrollHeight > contentRef.current.clientHeight);
         }
-      }, 100); // Debounce slightly for layout to settle
+      }, 100); 
       return () => clearTimeout(timer);
     }
-  }, [fullText, isModalOpen]); // isModalOpen is included because line-clamp changes clientHeight
-
-  const handleSaveClick = async (event?: React.MouseEvent) => {
-    event?.stopPropagation();
-    if (onSave) {
-      try {
-        await onSave(article);
-      } catch (error) {
-        console.error("Error during onSave callback:", error);
-      }
-    }
-  };
+  }, [fullText, isModalOpen]); 
 
   const handleDeleteConfirm = async () => {
     if (!user?.uid || !article.id || !onDelete) return;
@@ -318,10 +307,8 @@ ${factChecksMd.trim()}
       const canvasHeight = canvas.height;
 
       const ratio = canvasWidth / canvasHeight;
-      const imgWidthInPdf = pdfWidth - 40;
-      const imgHeightInPdf = imgWidthInPdf / ratio;
-
-      let position = 20;
+      const imgWidthInPdf = pdfWidth - 40; 
+      let position = 20; 
       let remainingCanvasHeight = canvasHeight;
       let pageCanvasStartY = 0;
 
@@ -340,7 +327,7 @@ ${factChecksMd.trim()}
         const pageImgData = pageCanvas.toDataURL('image/png');
         const segmentImgHeightInPdf = imgWidthInPdf * (segmentHeightOnCanvas / canvasWidth);
 
-        if (position !== 20) {
+        if (position !== 20) { 
           pdf.addPage();
           position = 20;
         }
@@ -349,9 +336,9 @@ ${factChecksMd.trim()}
 
         remainingCanvasHeight -= segmentHeightOnCanvas;
         pageCanvasStartY += segmentHeightOnCanvas;
-
+        
         if (remainingCanvasHeight > 0) {
-           position = pdfHeight;
+           position = pdfHeight; 
         }
       }
 
@@ -427,6 +414,10 @@ ${factChecksMd.trim()}
       {isGenerated && (articleData as GeneratedArticle).imageUrl && (
         <div
           className="relative aspect-video w-full rounded-t-lg overflow-hidden border-b"
+          onClick={() => setIsModalOpen(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && setIsModalOpen(true)}
         >
           <Image
             src={(articleData as GeneratedArticle).imageUrl!}
@@ -438,7 +429,7 @@ ${factChecksMd.trim()}
       )}
 
       {isGenerated ? (
-        <CardHeader className='flex flex-row items-start justify-between'>
+        <CardHeader className='flex flex-row items-start justify-between' onClick={() => setIsModalOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && setIsModalOpen(true)}>
             <div className="flex-grow">
                 <CardTitle className="font-headline text-xl flex items-center">
                     <Bot className="mr-2 h-6 w-6 text-primary" />
@@ -455,7 +446,7 @@ ${factChecksMd.trim()}
             </div>
         </CardHeader>
       ) : (
-        <CardHeader className='flex flex-row items-start justify-between gap-2'>
+        <CardHeader className='flex flex-row items-start justify-between gap-2' onClick={() => setIsModalOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && setIsModalOpen(true)}>
             <div className="flex-grow">
                 <CardTitle className="font-headline text-xl flex items-center">
                 {resultLabel === 'Real' ?
@@ -486,7 +477,7 @@ ${factChecksMd.trim()}
         </CardHeader>
       )}
 
-      <CardContent className="flex-grow">
+      <CardContent className="flex-grow" onClick={() => setIsModalOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && setIsModalOpen(true)}>
         <div
           ref={contentRef}
           className={cn(
@@ -502,7 +493,7 @@ ${factChecksMd.trim()}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           {showReadMoreButton && !isModalOpen && (
             <DialogTrigger asChild>
-              <Button variant="link" size="sm" className="p-0 h-auto mt-2 text-primary hover:underline">
+              <Button variant="link" size="sm" className="p-0 h-auto mt-2 text-primary hover:underline" onClick={(e) => {e.stopPropagation(); setIsModalOpen(true); }}>
                   <Eye className="mr-1 h-4 w-4"/>Read More / View Analysis
               </Button>
             </DialogTrigger>
@@ -623,40 +614,7 @@ ${factChecksMd.trim()}
             </TooltipProvider>
           )}
         </div>
-        <div className="flex flex-col xs:flex-row gap-2 w-full xs:w-auto mt-2 xs:mt-0 shrink-0">
-            {showSaveButton && onSave && (
-            <Button onClick={(e) => handleSaveClick(e)} size="sm" variant="outline" disabled={isSaving} className="w-full xs:w-auto">
-                {isSaving ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-                    </>
-                ) : (
-                    <>
-                        <Save className="mr-2 h-4 w-4" /> Save
-                    </>
-                )}
-            </Button>
-            )}
-
-            {!(article.id && onDelete && user?.uid) && (
-              <>
-                <Button onClick={handleExportPdf} size="sm" variant="outline" className="w-full xs:w-auto" disabled={isExportingPdf}>
-                    {isExportingPdf ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting...
-                        </>
-                    ) : (
-                        <>
-                            <FileText className="mr-2 h-4 w-4" /> Export PDF
-                        </>
-                    )}
-                </Button>
-                <Button onClick={handleExportMarkdown} size="sm" variant="outline" className="w-full xs:w-auto">
-                    <Download className="mr-2 h-4 w-4" /> Export Markdown
-                </Button>
-              </>
-            )}
-        </div>
+        {/* Removed direct export/save buttons from here, they are in ActionMenu for saved items or on GeneratorPage */}
       </CardFooter>
 
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
@@ -679,4 +637,3 @@ ${factChecksMd.trim()}
     </Card>
   );
 }
-

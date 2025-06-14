@@ -18,7 +18,10 @@ import { ArticleCard } from '@/components/shared/ArticleCard';
 import type { GeneratedArticle } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveArticle } from '@/lib/firebase';
-import { Loader2, Wand2, Save, AlertTriangle, Image as ImageIconLucide, Lightbulb } from 'lucide-react';
+import { Loader2, Wand2, Save, AlertTriangle, Image as ImageIconLucide, Lightbulb, FileText, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { format } from 'date-fns';
 
 
 const generatorFormSchema = z.object({
@@ -39,6 +42,7 @@ export default function GeneratorPage() {
   const [isLoadingArticle, setIsLoadingArticle] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [imageGenerationMessage, setImageGenerationMessage] = useState<string | null>(null);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
 
   const form = useForm<GeneratorFormValues>({
@@ -70,16 +74,15 @@ export default function GeneratorPage() {
       
       const tempArticleDetails: GeneratedArticle = {
         type: 'generated',
-        title: articleResult.title, // Use AI-generated title
+        title: articleResult.title, 
         content: articleResult.article,
         topic: data.topic,
         category: data.category,
         tone: data.tone,
         timestamp: new Date().toISOString(),
         userId: user?.uid,
-        // imageUrl will be added after image generation
       };
-      setGeneratedArticle(tempArticleDetails); // Show text & title first
+      setGeneratedArticle(tempArticleDetails);
 
       toast({
         title: "Article Text & Title Generated!",
@@ -87,11 +90,10 @@ export default function GeneratorPage() {
       });
       setImageGenerationMessage("Generating header image...");
 
-      // 2. Automatically Generate Image
       let finalImageUrl: string | undefined = undefined;
       try {
         const imageGenInput: GenerateArticleImageInput = {
-          topic: tempArticleDetails.topic, // Could also use tempArticleDetails.title for more specific image
+          topic: tempArticleDetails.topic,
           category: tempArticleDetails.category,
           articleSnippet: tempArticleDetails.content.substring(0, 200),
         };
@@ -121,10 +123,9 @@ export default function GeneratorPage() {
         setImageGenerationMessage(`Image generation failed: ${imageError.message}`);
       }
       
-      // 3. Set final state with image for display
       setGeneratedArticle(prev => prev ? { ...prev, imageUrl: finalImageUrl } : null);
 
-    } catch (error: any) { // Catches errors from article text/title generation
+    } catch (error: any) { 
       console.error("Error generating article content/title:", error);
       toast({
         title: "Article Generation Failed",
@@ -134,7 +135,6 @@ export default function GeneratorPage() {
       setImageGenerationMessage(null);
     } finally {
       setIsLoadingArticle(false);
-      // Message will clear or update based on outcome
       setTimeout(() => { if (!isLoadingArticle) setImageGenerationMessage(null); }, 5000);
     }
   };
@@ -158,6 +158,124 @@ export default function GeneratorPage() {
       toast({ title: "Save Failed", description: error.message || "Could not save the article.", variant: "destructive" });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleExportMarkdown = () => {
+    if (!generatedArticle) return;
+    const { title, content, topic, category, tone, timestamp, imageUrl } = generatedArticle;
+    const formattedTimestamp = timestamp ? format(new Date(timestamp), "MMMM d, yyyy, h:mm a") : 'N/A';
+    const safeTopic = topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50) || 'article';
+    const filename = `veritas-ai-generated-${safeTopic}.md`;
+
+    let markdownContent = `
+# ${title}
+${imageUrl ? `\n![Header Image for ${title.replace(/[^a-zA-Z0-9 ]/g, "")}](${imageUrl})\n` : ''}
+${content}
+
+---
+**Details:**
+- **Type:** Generated Article
+- **Topic:** ${topic}
+- **Category:** ${category}
+- **Tone:** ${tone}
+- **Generated on:** ${formattedTimestamp}
+- *Exported from Veritas AI*
+`;
+    markdownContent = markdownContent.trim().replace(/\n\s*\n\s*\n/g, '\n\n');
+    const blob = new Blob([markdownContent], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({ title: "Export Successful", description: `${filename} has been downloaded.` });
+  };
+
+  const handleExportPdf = async () => {
+    if (!generatedArticle) return;
+    setIsExportingPdf(true);
+    toast({ title: "Generating PDF...", description: "This may take a few moments." });
+
+    const { title, content, topic, category, tone, timestamp, imageUrl } = generatedArticle;
+    const formattedTimestamp = timestamp ? format(new Date(timestamp), "MMMM d, yyyy, h:mm a") : 'N/A';
+    const safeTopic = topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50) || 'article';
+    const filename = `veritas-ai-generated-${safeTopic}.pdf`;
+
+    const pdfElement = document.createElement('div');
+    pdfElement.style.position = 'absolute';
+    pdfElement.style.left = '-9999px';
+    pdfElement.style.width = '800px';
+    pdfElement.style.padding = '20px';
+    pdfElement.style.fontFamily = 'Arial, sans-serif';
+    pdfElement.style.fontSize = '12px';
+    pdfElement.style.color = '#333';
+    pdfElement.style.backgroundColor = '#fff';
+
+    let htmlContent = `
+      <h1 style="font-size: 24px; margin-bottom: 10px; color: #1a73e8;">${title}</h1>
+      <p style="font-size: 10px; color: #777; margin-bottom: 15px;">Generated on: ${formattedTimestamp} by Veritas AI</p>
+    `;
+    if (imageUrl) {
+      htmlContent += `<img src="${imageUrl}" alt="Article Image" style="max-width: 100%; height: auto; margin-bottom: 15px; border: 1px solid #eee;" crossOrigin="anonymous" />`;
+    }
+    htmlContent += `<div style="white-space: pre-wrap; line-height: 1.6;">${content.replace(/\n/g, '<br />')}</div>`;
+    htmlContent += `
+      <hr style="margin: 20px 0; border-top: 1px solid #ccc;"/>
+      <p style="font-size: 11px;"><strong>Topic:</strong> ${topic}</p>
+      <p style="font-size: 11px;"><strong>Category:</strong> ${category}</p>
+      <p style="font-size: 11px;"><strong>Tone:</strong> ${tone}</p>
+    `;
+    
+    pdfElement.innerHTML = htmlContent;
+    document.body.appendChild(pdfElement);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    try {
+      const canvas = await html2canvas(pdfElement, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+      const ratio = canvasWidth / canvasHeight;
+      const imgWidthInPdf = pdfWidth - 40;
+      let position = 20;
+      let remainingCanvasHeight = canvasHeight;
+      let pageCanvasStartY = 0;
+
+      while (remainingCanvasHeight > 0) {
+        const pageCanvas = document.createElement('canvas');
+        const pageCtx = pageCanvas.getContext('2d');
+        if (!pageCtx) throw new Error("Could not get 2D context for page canvas");
+        const maxContentHeightOnPage = (pdfHeight - 40) * (canvasWidth / imgWidthInPdf);
+        const segmentHeightOnCanvas = Math.min(remainingCanvasHeight, maxContentHeightOnPage);
+        pageCanvas.width = canvasWidth;
+        pageCanvas.height = segmentHeightOnCanvas;
+        pageCtx.drawImage(canvas, 0, pageCanvasStartY, canvasWidth, segmentHeightOnCanvas, 0, 0, canvasWidth, segmentHeightOnCanvas);
+        const pageImgData = pageCanvas.toDataURL('image/png');
+        const segmentImgHeightInPdf = imgWidthInPdf * (segmentHeightOnCanvas / canvasWidth);
+        if (position !== 20) {
+          pdf.addPage();
+          position = 20;
+        }
+        pdf.addImage(pageImgData, 'PNG', 20, position, imgWidthInPdf, segmentImgHeightInPdf);
+        remainingCanvasHeight -= segmentHeightOnCanvas;
+        pageCanvasStartY += segmentHeightOnCanvas;
+        if (remainingCanvasHeight > 0) position = pdfHeight;
+      }
+      pdf.save(filename);
+      toast({ title: "PDF Export Successful!", description: `${filename} has been downloaded.` });
+    } catch (error: any) {
+      console.error("Error exporting PDF:", error);
+      toast({ title: "PDF Export Failed", description: error.message || "Could not generate PDF.", variant: "destructive" });
+    } finally {
+      document.body.removeChild(pdfElement);
+      setIsExportingPdf(false);
     }
   };
 
@@ -205,7 +323,7 @@ export default function GeneratorPage() {
                   <FormItem>
                     <FormLabel>Topic</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Discovery of a new planet, A celebrity's unusual pet" {...field} disabled={isLoadingArticle || isSaving} />
+                      <Input placeholder="e.g., Discovery of a new planet, A celebrity's unusual pet" {...field} disabled={isLoadingArticle || isSaving || isExportingPdf} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -218,7 +336,7 @@ export default function GeneratorPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingArticle || isSaving}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingArticle || isSaving || isExportingPdf}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a category" />
@@ -240,7 +358,7 @@ export default function GeneratorPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tone</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingArticle || isSaving}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingArticle || isSaving || isExportingPdf}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a tone" />
@@ -257,7 +375,7 @@ export default function GeneratorPage() {
                   )}
                 />
               </div>
-              <Button type="submit" className="w-full md:w-auto" disabled={isLoadingArticle || isSaving}>
+              <Button type="submit" className="w-full md:w-auto" disabled={isLoadingArticle || isSaving || isExportingPdf}>
                 {isLoadingArticle ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
@@ -307,40 +425,41 @@ export default function GeneratorPage() {
               </div>
           )}
 
-
-          <ArticleCard
-            article={generatedArticle}
-            showSaveButton={false} 
-          />
+          <ArticleCard article={generatedArticle} />
           
-          <Card className="shadow-md mt-6">
-            <CardHeader>
-              <CardTitle className="font-headline text-xl">Save Your Creation</CardTitle>
-              <CardDescription>
-                {generatedArticle.id ? "This article has been saved to your history." : "Save the generated article and its image to your history."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={handleSaveArticle} 
-                disabled={isSaving || !!generatedArticle.id || isLoadingArticle} 
-                className="w-full sm:w-auto"
-              >
-                {isSaving ? (
-                   <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-                   </>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-start">
+            <Button 
+              onClick={handleSaveArticle} 
+              disabled={isSaving || !!generatedArticle.id || isLoadingArticle || isExportingPdf} 
+              className="w-full sm:w-auto"
+            >
+              {isSaving ? (
+                 <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                 </>
+              ) : (
+                 <>
+                    <Save className="mr-2 h-4 w-4" /> {generatedArticle.id ? "Article Saved" : "Save Article & Image"}
+                 </>
+              )}
+            </Button>
+            <Button onClick={handleExportPdf} variant="outline" className="w-full sm:w-auto" disabled={isExportingPdf || isLoadingArticle || isSaving}>
+                {isExportingPdf ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Exporting PDF...
+                    </>
                 ) : (
-                   <>
-                      <Save className="mr-2 h-4 w-4" /> {generatedArticle.id ? "Article Saved" : "Save Article & Image"}
-                   </>
+                    <>
+                        <FileText className="mr-2 h-4 w-4" /> Export PDF
+                    </>
                 )}
-              </Button>
-            </CardContent>
-          </Card>
+            </Button>
+            <Button onClick={handleExportMarkdown} variant="outline" className="w-full sm:w-auto" disabled={isExportingPdf || isLoadingArticle || isSaving}>
+                <Download className="mr-2 h-4 w-4" /> Export Markdown
+            </Button>
+          </div>
         </>
       )}
     </div>
   );
-
-    
+}
