@@ -224,7 +224,7 @@ export default function ProfilePage() {
             </form>
           </Form>
 
-          <Card className="mt-8 bg-secondary/50">
+          <Card className="mt-8">
             <CardHeader>
                 <CardTitle className="text-lg">Account Security</CardTitle>
             </CardHeader>
@@ -335,3 +335,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
