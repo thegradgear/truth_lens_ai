@@ -14,36 +14,36 @@ export function AboutSection() {
           </p>
         </div>
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 items-start">
-          <Card className="shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="shadow-lg hover:shadow-xl transition-shadow flex flex-col">
             <CardHeader className="items-center">
               <div className="p-3 rounded-full bg-primary/10 text-primary mb-2">
                 <Lightbulb className="h-8 w-8" />
               </div>
               <CardTitle className="font-headline text-xl">Our Mission</CardTitle>
             </CardHeader>
-            <CardContent className="text-center text-muted-foreground">
+            <CardContent className="text-center text-muted-foreground flex-grow">
               To provide accessible and powerful AI tools that help users discern truth from misinformation, understand the nuances of AI-generated content, and enhance media literacy through interactive experiences.
             </CardContent>
           </Card>
-          <Card className="shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="shadow-lg hover:shadow-xl transition-shadow flex flex-col">
             <CardHeader className="items-center">
                <div className="p-3 rounded-full bg-primary/10 text-primary mb-2">
                 <Target className="h-8 w-8" />
               </div>
               <CardTitle className="font-headline text-xl">Our Vision</CardTitle>
             </CardHeader>
-            <CardContent className="text-center text-muted-foreground">
+            <CardContent className="text-center text-muted-foreground flex-grow">
               A world where individuals are equipped to critically evaluate information, fostering a more informed and resilient society against the tide of disinformation.
             </CardContent>
           </Card>
-          <Card className="shadow-lg hover:shadow-xl transition-shadow md:col-span-2 lg:col-span-1">
+          <Card className="shadow-lg hover:shadow-xl transition-shadow md:col-span-2 lg:col-span-1 flex flex-col">
             <CardHeader className="items-center">
               <div className="p-3 rounded-full bg-primary/10 text-primary mb-2">
                 <Users className="h-8 w-8" />
               </div>
               <CardTitle className="font-headline text-xl">Our Team</CardTitle>
             </CardHeader>
-            <CardContent className="text-center text-muted-foreground">
+            <CardContent className="text-center text-muted-foreground flex-grow">
               Composed of passionate AI researchers, developers, and designers committed to ethical AI and empowering users with knowledge.
             </CardContent>
           </Card>
