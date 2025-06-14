@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Badge, badgeVariants } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { GeneratedArticle, DetectedArticle, Article, FactCheckResult } from '@/types';
 import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, Eye, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download, Trash2, MoreVertical } from 'lucide-react';
@@ -378,7 +378,10 @@ ${factChecksMd.trim()}
   const confidenceScore = detectedArticleData ? (detectedArticleData.result.confidence || 0).toFixed(1) : '';
   const justification = detectedArticleData?.justification;
   const factChecks = detectedArticleData?.factChecks;
-  const modalTitle = isGenerated ? (articleData as GeneratedArticle).title : 'Full Article Text & Analysis';
+  
+  const aiGeneratedTitle = isGenerated ? (articleData as GeneratedArticle).title : null;
+  const modalTitle = aiGeneratedTitle || 'Full Article Text & Analysis';
+
 
   const justificationSummaryPoints = useMemo(() => getJustificationSummary(justification), [justification]);
 
@@ -427,7 +430,7 @@ ${factChecksMd.trim()}
         >
           <Image
             src={(articleData as GeneratedArticle).imageUrl!}
-            alt={`Header for article titled: ${(articleData as GeneratedArticle).title.replace(/[^a-zA-Z0-9 ]/g, "")}`}
+            alt={`Header for article titled: ${aiGeneratedTitle ? aiGeneratedTitle.replace(/[^a-zA-Z0-9 ]/g, "") : 'Generated Article'}`}
             layout="fill"
             objectFit="cover"
           />
@@ -439,7 +442,7 @@ ${factChecksMd.trim()}
             <div className="flex-grow">
                 <CardTitle className="font-headline text-xl flex items-center">
                     <Bot className="mr-2 h-6 w-6 text-primary" />
-                    {(articleData as GeneratedArticle).title || 'AI Generated Article'}
+                    {aiGeneratedTitle || 'AI Generated Article'}
                 </CardTitle>
                 <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
                     <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
@@ -469,8 +472,8 @@ ${factChecksMd.trim()}
                 <TooltipProvider delayDuration={0}>
                     <Tooltip>
                     <TooltipTrigger asChild>
-                        <Badge variant={resultLabel === 'Real' ? 'default' : 'destructive'}>
-                        {resultLabel}
+                        <Badge variant={resultLabel === 'Real' ? 'success' : 'destructive'}>
+                         {resultLabel}
                         </Badge>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -677,7 +680,8 @@ ${factChecksMd.trim()}
   );
 }
 
-const buttonVariants = ({ variant }: { variant: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | null | undefined }) => {
-  if (variant === "destructive") return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
-  return "bg-primary text-primary-foreground hover:bg-primary/90";
-};
+// const buttonVariants = ({ variant }: { variant: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | null | undefined }) => {
+//   if (variant === "destructive") return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
+//   return "bg-primary text-primary-foreground hover:bg-primary/90";
+// };
+

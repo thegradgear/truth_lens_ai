@@ -20,7 +20,8 @@ const GenerateFakeNewsArticleInputSchema = z.object({
 export type GenerateFakeNewsArticleInput = z.infer<typeof GenerateFakeNewsArticleInputSchema>;
 
 const GenerateFakeNewsArticleOutputSchema = z.object({
-  article: z.string().describe('The generated fake news article.'),
+  title: z.string().describe('The catchy, AI-generated headline for the fake news article.'),
+  article: z.string().describe('The body content of the generated fake news article.'),
 });
 export type GenerateFakeNewsArticleOutput = z.infer<typeof GenerateFakeNewsArticleOutputSchema>;
 
@@ -43,12 +44,14 @@ const prompt = ai.definePrompt({
 
 You will be provided with a topic, category, and tone.
 
+You MUST generate a catchy and relevant headline (title) for the article.
 You will write a fake news article based on the topic, category, and tone.
 
 Topic: {{{topic}}}
 Category: {{{category}}}
 Tone: {{{tone}}}
 
+Headline: 
 Article: `,
    // Basic safety settings - adjust as needed
   config: {
@@ -70,7 +73,7 @@ const generateFakeNewsArticleFlow = ai.defineFlow(
   async input => {
     try {
       const {output, candidates} = await prompt(input);
-      if (!output || !output.article) {
+      if (!output || !output.article || !output.title) {
         if (candidates && candidates.length > 0) {
             const firstCandidate = candidates[0];
             if (firstCandidate.finishReason === 'SAFETY') {
@@ -82,13 +85,13 @@ const generateFakeNewsArticleFlow = ai.defineFlow(
                 throw new Error("The AI could not generate an article as it might resemble copyrighted material. Please try a different topic.");
             }
         }
-        console.error('Article generation failed: AI did not return a valid article structure for input:', input);
-        throw new Error('AI model did not return a valid article. Please try modifying your input or try again later.');
+        console.error('Article generation failed: AI did not return a valid article structure (title and/or body missing) for input:', input);
+        throw new Error('AI model did not return a complete article (title or body). Please try modifying your input or try again later.');
       }
       return output;
     } catch (error: any) {
         console.error("Error during article generation prompt execution:", error);
-        if (error instanceof Error && (error.message.includes("safety content policies") || error.message.includes("copyrighted material") || error.message.includes("AI model did not return a valid article"))) {
+        if (error instanceof Error && (error.message.includes("safety content policies") || error.message.includes("copyrighted material") || error.message.includes("AI model did not return a complete article"))) {
             throw error; // Re-throw specific errors
         }
         throw new Error(`Article generation encountered an issue: ${error.message || 'Unknown error'}. Please try again.`);

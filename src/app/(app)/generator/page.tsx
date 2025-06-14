@@ -53,10 +53,10 @@ export default function GeneratorPage() {
   const onSubmitArticle: SubmitHandler<GeneratorFormValues> = async (data) => {
     setIsLoadingArticle(true);
     setGeneratedArticle(null);
-    setImageGenerationMessage("Generating article text...");
+    setImageGenerationMessage("Generating article text and title...");
 
     try {
-      // 1. Generate Article Text
+      // 1. Generate Article Text & Title
       const articleInput: GenerateFakeNewsArticleInput = {
         topic: data.topic,
         category: data.category,
@@ -64,13 +64,13 @@ export default function GeneratorPage() {
       };
       const articleResult: GenerateFakeNewsArticleOutput = await generateFakeNewsArticle(articleInput);
 
-      if (!articleResult.article) {
-        throw new Error("AI did not return an article text.");
+      if (!articleResult.article || !articleResult.title) {
+        throw new Error("AI did not return both an article title and text.");
       }
       
       const tempArticleDetails: GeneratedArticle = {
         type: 'generated',
-        title: `${data.category}: ${data.topic.substring(0,30)}... (${data.tone})`,
+        title: articleResult.title, // Use AI-generated title
         content: articleResult.article,
         topic: data.topic,
         category: data.category,
@@ -79,10 +79,10 @@ export default function GeneratorPage() {
         userId: user?.uid,
         // imageUrl will be added after image generation
       };
-      setGeneratedArticle(tempArticleDetails); // Show text first
+      setGeneratedArticle(tempArticleDetails); // Show text & title first
 
       toast({
-        title: "Article Text Generated!",
+        title: "Article Text & Title Generated!",
         description: "Now automatically creating a header image...",
       });
       setImageGenerationMessage("Generating header image...");
@@ -91,7 +91,7 @@ export default function GeneratorPage() {
       let finalImageUrl: string | undefined = undefined;
       try {
         const imageGenInput: GenerateArticleImageInput = {
-          topic: tempArticleDetails.topic,
+          topic: tempArticleDetails.topic, // Could also use tempArticleDetails.title for more specific image
           category: tempArticleDetails.category,
           articleSnippet: tempArticleDetails.content.substring(0, 200),
         };
@@ -124,8 +124,8 @@ export default function GeneratorPage() {
       // 3. Set final state with image for display
       setGeneratedArticle(prev => prev ? { ...prev, imageUrl: finalImageUrl } : null);
 
-    } catch (error: any) { // Catches errors from article text generation
-      console.error("Error generating article content:", error);
+    } catch (error: any) { // Catches errors from article text/title generation
+      console.error("Error generating article content/title:", error);
       toast({
         title: "Article Generation Failed",
         description: error.message || "Could not generate the article. Please try again.",
@@ -164,7 +164,7 @@ export default function GeneratorPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="border-primary/30">
+      <Card className="border-primary/30 bg-transparent">
         <CardHeader className="flex flex-row items-start gap-4">
           <Lightbulb className="h-8 w-8 text-primary dark:text-primary-foreground mt-1 shrink-0" />
           <div>
@@ -192,7 +192,7 @@ export default function GeneratorPage() {
             <ImageIconLucide className="h-6 w-6 text-primary opacity-80"/>
           </CardTitle>
           <CardDescription>
-            Craft an AI-generated news article. A header image will be automatically generated and displayed with the article.
+            Craft an AI-generated news article and title. A header image will be automatically generated and displayed with the article.
           </CardDescription>
         </CardHeader>
         <CardContent>
