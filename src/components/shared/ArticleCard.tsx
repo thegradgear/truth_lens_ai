@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button'; // Ensured buttonVariants is imported
 import type { GeneratedArticle, DetectedArticle, Article } from '@/types';
 import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download, Trash2, MoreVertical, Maximize } from 'lucide-react';
 import { format } from 'date-fns';
@@ -28,14 +28,14 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription as DialogDescriptionDetail, // Renamed to avoid conflict
+  DialogDescription as DialogDescriptionDetail,
   DialogHeader as DialogHeaderDetail,
   DialogTitle as DialogTitleDetail,
   DialogFooter as DialogFooterDetail,
   DialogClose,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
@@ -44,12 +44,11 @@ import html2canvas from 'html2canvas';
 import { useAuth } from '@/contexts/AuthContext';
 import { deleteArticle as deleteArticleFromDb } from '@/lib/firebase';
 import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
 
 
 export interface ArticleCardProps {
   article: Article;
-  onDelete?: (articleId: string) => Promise<void>; 
+  onDelete?: (articleId: string) => Promise<void>;
 }
 
 export function ArticleCard({ article, onDelete }: ArticleCardProps) {
@@ -70,7 +69,7 @@ export function ArticleCard({ article, onDelete }: ArticleCardProps) {
     setIsDeleting(true);
     try {
       await deleteArticleFromDb(user.uid, article.id);
-      await onDelete(article.id); 
+      await onDelete(article.id);
       toast({
         title: "Article Removed",
         description: "The article has been successfully removed from your history.",
@@ -188,12 +187,12 @@ ${factChecksMd.trim()}
     const pdfElement = document.createElement('div');
     pdfElement.style.position = 'absolute';
     pdfElement.style.left = '-9999px';
-    pdfElement.style.width = '800px'; 
+    pdfElement.style.width = '800px';
     pdfElement.style.padding = '20px';
     pdfElement.style.fontFamily = 'Arial, sans-serif';
     pdfElement.style.fontSize = '12px';
     pdfElement.style.color = '#333';
-    pdfElement.style.backgroundColor = '#fff'; 
+    pdfElement.style.backgroundColor = '#fff';
 
     let htmlContent = '';
 
@@ -245,7 +244,7 @@ ${factChecksMd.trim()}
               <p><strong>Source:</strong> ${fc.source}</p>
               <p><strong>Claim Reviewed:</strong> ${fc.claimReviewed}</p>
               <p><strong>Rating:</strong> ${fc.rating}</p>
-              ${fc.url ? `<p><strong>Link:</strong> <a href="${fc.url}" target="_blank" style="color: #1a73e8; text-decoration: none;">View Source</a></p>` : ''}
+              ${fc.url ? `<p><strong>Link:</strong> <a href="${fc.url}" target="_blank" rel="noopener noreferrer" style="color: #1a73e8; text-decoration: none;">View Source</a></p>` : ''}
             </div>
           `;
         });
@@ -254,62 +253,62 @@ ${factChecksMd.trim()}
 
     pdfElement.innerHTML = htmlContent;
     document.body.appendChild(pdfElement);
-    await new Promise(resolve => setTimeout(resolve, 1000)); 
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
 
     try {
       const canvas = await html2canvas(pdfElement, {
-        scale: 2, 
-        useCORS: true, 
-        logging: false, 
-        backgroundColor: '#ffffff', 
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
       });
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'pt', 
-        format: 'a4' 
+        unit: 'pt',
+        format: 'a4'
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
-      const imgWidthInPdf = pdfWidth - 40; 
-      
-      let position = 20; 
+      const imgWidthInPdf = pdfWidth - 40;
+
+      let position = 20;
       let remainingCanvasHeight = canvasHeight;
       let pageCanvasStartY = 0;
 
       while (remainingCanvasHeight > 0) {
-        const maxContentHeightOnPage = (pdfHeight - 40) * (canvasWidth / imgWidthInPdf); 
+        const maxContentHeightOnPage = (pdfHeight - 40) * (canvasWidth / imgWidthInPdf);
         const segmentHeightOnCanvas = Math.min(remainingCanvasHeight, maxContentHeightOnPage);
-        
+
         const pageCanvas = document.createElement('canvas');
         const pageCtx = pageCanvas.getContext('2d');
         if (!pageCtx) throw new Error("Could not get 2D context for page canvas");
 
         pageCanvas.width = canvasWidth;
         pageCanvas.height = segmentHeightOnCanvas;
-        
+
         pageCtx.drawImage(canvas, 0, pageCanvasStartY, canvasWidth, segmentHeightOnCanvas, 0, 0, canvasWidth, segmentHeightOnCanvas);
 
         const pageImgData = pageCanvas.toDataURL('image/png');
-        const segmentImgHeightInPdf = imgWidthInPdf * (segmentHeightOnCanvas / canvasWidth); 
+        const segmentImgHeightInPdf = imgWidthInPdf * (segmentHeightOnCanvas / canvasWidth);
 
-        if (position !== 20) { 
+        if (position !== 20) {
           pdf.addPage();
-          position = 20; 
+          position = 20;
         }
 
         pdf.addImage(pageImgData, 'PNG', 20, position, imgWidthInPdf, segmentImgHeightInPdf);
 
         remainingCanvasHeight -= segmentHeightOnCanvas;
         pageCanvasStartY += segmentHeightOnCanvas;
-        
-        if (remainingCanvasHeight > 0) { 
-           position = pdfHeight; 
+
+        if (remainingCanvasHeight > 0) {
+           position = pdfHeight;
         }
       }
 
@@ -336,11 +335,11 @@ ${factChecksMd.trim()}
   const confidenceScore = detectedArticleData ? (detectedArticleData.result.confidence || 0).toFixed(1) : '';
   const justification = detectedArticleData?.justification;
   const factChecks = detectedArticleData?.factChecks;
-  
-  const cardTitle = isGenerated 
-    ? (articleData as GeneratedArticle).title 
+
+  const cardTitle = isGenerated
+    ? (articleData as GeneratedArticle).title
     : (detectedArticleData?.title || "Analysis Report");
-  
+
   const ActionMenu = () => (
     article.id && onDelete && user?.uid ? (
       <DropdownMenu>
@@ -395,38 +394,25 @@ ${factChecksMd.trim()}
 
       <CardHeader>
         <div className="flex items-start justify-between w-full gap-2">
-          <div className="flex-grow min-w-0">
-            <CardTitle className="font-headline text-xl flex items-center">
-              {isGenerated ? (
-                <Bot className="mr-2 h-6 w-6 text-primary shrink-0" />
-              ) : (
-                resultLabel === 'Real' ?
-                <CheckCircle className="mr-2 h-6 w-6 text-green-500 shrink-0" /> :
-                <AlertTriangle className="mr-2 h-6 w-6 text-destructive shrink-0" />
-              )}
-              <span className="truncate">{cardTitle}</span>
-            </CardTitle>
-            {!isGenerated && detectedArticleData && (
-              <CardDescription className="mt-1">
-                Confidence: {confidenceScore}%
-              </CardDescription>
+          <CardTitle className="font-headline text-xl flex items-center flex-grow min-w-0">
+            {isGenerated ? (
+              <Bot className="mr-2 h-6 w-6 text-primary shrink-0" />
+            ) : (
+              resultLabel === 'Real' ?
+              <CheckCircle className="mr-2 h-6 w-6 text-green-500 shrink-0" /> :
+              <AlertTriangle className="mr-2 h-6 w-6 text-destructive shrink-0" />
             )}
-            {isGenerated && (
-              <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
-                <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Category: {(articleData as GeneratedArticle).category}</span>
-                <span className="flex items-center"><MessageSquareQuote className="mr-1 h-3 w-3" /> Tone: {(articleData as GeneratedArticle).tone}</span>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex items-center shrink-0 space-x-1">
+            <span className="truncate">{cardTitle}</span>
+          </CardTitle>
+
+          <div className="flex items-center space-x-1 shrink-0">
             {!isGenerated && detectedArticleData && (
               <TooltipProvider delayDuration={0}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                     <Badge 
+                     <Badge
                        variant={resultLabel === 'Real' ? 'success' : 'destructive'}
+                       className="whitespace-nowrap"
                      >
                         {resultLabel}
                       </Badge>
@@ -440,8 +426,20 @@ ${factChecksMd.trim()}
             {article.id && onDelete && user?.uid && <ActionMenu />}
           </div>
         </div>
+        {!isGenerated && detectedArticleData && (
+          <CardDescription className="mt-1">
+            Confidence: {confidenceScore}%
+          </CardDescription>
+        )}
+        {isGenerated && (
+          <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
+            <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
+            <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Category: {(articleData as GeneratedArticle).category}</span>
+            <span className="flex items-center"><MessageSquareQuote className="mr-1 h-3 w-3" /> Tone: {(articleData as GeneratedArticle).tone}</span>
+          </div>
+        )}
       </CardHeader>
-      
+
       <CardContent className="flex-grow space-y-3">
         <div className="text-sm text-foreground m-0">
             <p className="whitespace-pre-wrap line-clamp-4">
@@ -465,8 +463,8 @@ ${factChecksMd.trim()}
         )}
       </CardContent>
 
-      <CardFooter className="flex flex-col xs:flex-row justify-between items-start xs:items-center border-t pt-3 pb-3 gap-2">
-        <div className="flex flex-col xs:flex-row xs:flex-wrap xs:items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <CardFooter className="flex justify-between items-center border-t pt-3 pb-3 gap-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <div className="flex items-center shrink-0">
             <Clock className="mr-1 h-3 w-3" />
             {articleData.timestamp ? format(new Date(articleData.timestamp), "MMM d, yy, h:mm a") : 'Processing date...'}
@@ -475,7 +473,7 @@ ${factChecksMd.trim()}
             <TooltipProvider delayDuration={0}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center mt-1 xs:mt-0 cursor-default">
+                  <div className="flex items-center cursor-default">
                     {detectedArticleData.detectionMethod === 'custom' ? (
                       <Database className="mr-1 h-3 w-3 text-primary/80 shrink-0" />
                     ) : (
@@ -495,8 +493,8 @@ ${factChecksMd.trim()}
             </TooltipProvider>
           )}
         </div>
-        <Button variant="outline" size="sm" onClick={() => setIsDetailModalOpen(true)} className="mt-2 xs:mt-0 xs:ml-auto">
-            <Maximize className="mr-2 h-3 w-3" /> View Details
+        <Button variant="outline" size="sm" onClick={() => setIsDetailModalOpen(true)} className="ml-auto">
+            <Maximize className="mr-2 h-3 w-3" /> View Full Article
         </Button>
       </CardFooter>
     </Card>
@@ -520,7 +518,7 @@ ${factChecksMd.trim()}
                   {articleData.timestamp ? format(new Date(articleData.timestamp), "MMMM d, yyyy, h:mm a") : 'Timestamp not available'}
                 </DialogDescriptionDetail>
             </DialogHeaderDetail>
-            
+
             <ScrollArea className="max-h-[calc(90vh-12rem)] pr-5">
                 <div className="space-y-4 py-4">
                     {isGenerated && (articleData as GeneratedArticle).imageUrl && (
@@ -549,7 +547,7 @@ ${factChecksMd.trim()}
                             <div><span className="font-semibold text-primary">Model:</span> {detectedArticleData.detectionMethod === 'custom' ? 'Custom' : 'Genkit AI'}</div>
                         </div>
                     )}
-                    
+
                     <div>
                         <h4 className="font-semibold text-lg mb-2 text-primary border-b pb-1">Full Article Text:</h4>
                         <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{fullText}</p>
@@ -616,3 +614,4 @@ ${factChecksMd.trim()}
     </>
   );
 }
+
