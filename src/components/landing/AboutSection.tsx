@@ -75,7 +75,7 @@ export function AboutSection() {
             </div>
             <div className="relative aspect-square rounded-lg overflow-hidden shadow-lg">
                  <Image
-                    src="https://placehold.co/600x600.png"
+                    src="/about.png"
                     alt="Team working on AI"
                     layout="fill"
                     objectFit="cover"

@@ -44,7 +44,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="relative aspect-video rounded-lg overflow-hidden shadow-md mt-6 lg:mt-0">
                     <Image 
-                        src="https://placehold.co/600x338.png" 
+                        src="/dashboard.png" 
                         alt="AI Dashboard Illustration" 
                         layout="fill" 
                         objectFit="cover"

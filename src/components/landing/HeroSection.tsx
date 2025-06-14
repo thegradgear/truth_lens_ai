@@ -33,7 +33,7 @@ export function HeroSection() {
           </div>
           <div className="relative aspect-video rounded-xl overflow-hidden shadow-2xl group mt-8 lg:mt-0">
              <Image
-              src="https://placehold.co/1200x675.png"
+              src="/hero.png"
               alt="AI analyzing news"
               layout="fill"
               objectFit="cover"

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: 'Truth Lens AI - Fake News Detection & Generation',
   description: 'Explore AI with Truth Lens AI: Detect fake news, generate articles & images, and test your skills with our interactive game. Built with Next.js, Firebase, and Genkit.',
   icons: {
-    icon: '/favicon-logo.ico', // Updated path for favicon in public directory
+    icon: '/favicon.ico', // Standard favicon path
   }
 };
 
@@ -47,4 +47,3 @@ export default function RootLayout({
     </html>
   );
 }
-
