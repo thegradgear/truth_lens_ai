@@ -36,19 +36,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { deleteArticle as deleteArticleFromDb } from '@/lib/firebase';
 
 
-// Helper function to process justification for summary display
-const getJustificationSummary = (fullJustification?: string): string[] => {
-  if (!fullJustification) return [];
-  return fullJustification
-    .split('\n')
-    .map(item => item.trim().replace(/^[-*]\s*/, '').trim())
-    .filter(s => s.length > 0)
-    .slice(0, 3); // Keep this for card summary if needed, or display all
-};
-
 export interface ArticleCardProps {
   article: Article;
-  onDelete?: (articleId: string) => Promise<void>;
+  onDelete?: (articleId: string) => Promise<void>; // For saved page to update list
 }
 
 export function ArticleCard({ article, onDelete }: ArticleCardProps) {
@@ -68,7 +58,7 @@ export function ArticleCard({ article, onDelete }: ArticleCardProps) {
     setIsDeleting(true);
     try {
       await deleteArticleFromDb(user.uid, article.id);
-      await onDelete(article.id);
+      await onDelete(article.id); // Callback to update parent component's state
       toast({
         title: "Article Removed",
         description: "The article has been successfully removed from your history.",
@@ -110,8 +100,8 @@ ${genArticle.content}
 `;
     } else if (article.type === 'detected') {
       const detArticle = articleData as DetectedArticle;
-      const simpleTitle = detArticle.text.substring(0, 30).replace(/[^a-z0-9]+/g, '-').toLowerCase() || 'analysis';
-      filename = `veritas-ai-detection-report-${simpleTitle}.md`;
+      const titleForFile = detArticle.title ? detArticle.title.substring(0,30).replace(/[^a-z0-9]+/g, '-').toLowerCase() : 'analysis';
+      filename = `veritas-ai-detection-${titleForFile}.md`;
 
       let justificationMd = "";
       if (detArticle.justification) {
@@ -138,8 +128,9 @@ ${genArticle.content}
       }
 
       markdownContent = `
-# Analysis Report: Detected Article
+# ${detArticle.title || 'Analysis Report: Detected Article'}
 
+**Full Article Text Analyzed:**
 ${detArticle.text}
 
 ---
@@ -185,12 +176,12 @@ ${factChecksMd.trim()}
     const pdfElement = document.createElement('div');
     pdfElement.style.position = 'absolute';
     pdfElement.style.left = '-9999px';
-    pdfElement.style.width = '800px';
+    pdfElement.style.width = '800px'; // Standard A4 width approximation for rendering
     pdfElement.style.padding = '20px';
     pdfElement.style.fontFamily = 'Arial, sans-serif';
     pdfElement.style.fontSize = '12px';
     pdfElement.style.color = '#333';
-    pdfElement.style.backgroundColor = '#fff';
+    pdfElement.style.backgroundColor = '#fff'; // Ensure background is white for canvas
 
     let htmlContent = '';
 
@@ -203,6 +194,9 @@ ${factChecksMd.trim()}
         <p style="font-size: 10px; color: #777; margin-bottom: 15px;">Generated on: ${formattedTimestamp} by Veritas AI</p>
       `;
       if (genArticle.imageUrl) {
+        // For PDF export, ensure images are loaded from a CORS-enabled source or use a proxy if needed.
+        // Using a placeholder for now to avoid direct external image issues in PDF generation if not configured for CORS.
+        // In a real scenario, you might need to fetch image as base64 or ensure Cloudinary serves with CORS.
         htmlContent += `<img src="${genArticle.imageUrl}" alt="Article Image" style="max-width: 100%; height: auto; margin-bottom: 15px; border: 1px solid #eee;" crossOrigin="anonymous" />`;
       }
       htmlContent += `<div style="white-space: pre-wrap; line-height: 1.6;">${genArticle.content.replace(/\n/g, '<br />')}</div>`;
@@ -214,10 +208,10 @@ ${factChecksMd.trim()}
       `;
     } else if (article.type === 'detected') {
       const detArticle = articleData as DetectedArticle;
-      const simpleTitle = detArticle.text.substring(0, 30).replace(/[^a-z0-9]+/g, '-').toLowerCase() || 'analysis';
-      filename = `veritas-ai-detection-report-${simpleTitle}.pdf`;
+      const titleForFile = detArticle.title ? detArticle.title.substring(0,30).replace(/[^a-z0-9]+/g, '-').toLowerCase() : 'analysis';
+      filename = `veritas-ai-detection-${titleForFile}.pdf`;
       htmlContent = `
-        <h1 style="font-size: 24px; margin-bottom: 10px; color: #1a73e8;">Analysis Report</h1>
+        <h1 style="font-size: 24px; margin-bottom: 10px; color: #1a73e8;">${detArticle.title || 'Analysis Report'}</h1>
         <p style="font-size: 10px; color: #777; margin-bottom: 15px;">Analyzed on: ${formattedTimestamp} by Veritas AI</p>
         <h2 style="font-size: 16px; margin-top: 20px; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Original Article Text:</h2>
         <div style="white-space: pre-wrap; line-height: 1.6; margin-bottom: 20px; padding: 10px; border: 1px solid #f0f0f0; background-color: #f9f9f9;">${detArticle.text.replace(/\n/g, '<br />')}</div>
@@ -252,22 +246,24 @@ ${factChecksMd.trim()}
     pdfElement.innerHTML = htmlContent;
     document.body.appendChild(pdfElement);
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait for images to potentially load, though html2canvas might handle this.
+    // This is a common point of failure if images aren't fully loaded or CORS issues arise.
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Adjust delay as needed
 
 
     try {
       const canvas = await html2canvas(pdfElement, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
+        scale: 2, // Higher scale for better PDF quality
+        useCORS: true, // Important for external images if any
+        logging: false, // Disable extensive logging to console
+        backgroundColor: '#ffffff', // Ensure canvas background is white
       });
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'pt',
-        format: 'a4'
+        unit: 'pt', // points
+        format: 'a4' // A4 paper size
       });
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -275,30 +271,38 @@ ${factChecksMd.trim()}
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
 
-      // const ratio = canvasWidth / canvasHeight; // Not directly used in this multi-page logic
-      const imgWidthInPdf = pdfWidth - 40; 
-      let position = 20; 
+      // Calculate image dimensions to fit A4, maintaining aspect ratio
+      const ratio = canvasWidth / canvasHeight;
+      // Margins for the PDF (e.g., 20pt on each side)
+      const imgWidthInPdf = pdfWidth - 40; // 20pt margin left, 20pt margin right
+      
+      // Multi-page logic
+      let position = 20; // Initial y position with top margin
       let remainingCanvasHeight = canvasHeight;
       let pageCanvasStartY = 0;
 
       while (remainingCanvasHeight > 0) {
+        // Calculate how much of the canvas can fit on the current PDF page
+        const maxContentHeightOnPage = (pdfHeight - 40) * (canvasWidth / imgWidthInPdf); // Max canvas vertical pixels that can fit on one PDF page.
+        const segmentHeightOnCanvas = Math.min(remainingCanvasHeight, maxContentHeightOnPage);
+        
+        // Create a temporary canvas for the current page segment
         const pageCanvas = document.createElement('canvas');
         const pageCtx = pageCanvas.getContext('2d');
         if (!pageCtx) throw new Error("Could not get 2D context for page canvas");
 
-        const maxContentHeightOnPage = (pdfHeight - 40) * (canvasWidth / imgWidthInPdf); // Max canvas pixels that fit on PDF page
-        const segmentHeightOnCanvas = Math.min(remainingCanvasHeight, maxContentHeightOnPage);
-
         pageCanvas.width = canvasWidth;
         pageCanvas.height = segmentHeightOnCanvas;
+        
+        // Draw the relevant segment of the full canvas onto the page canvas
         pageCtx.drawImage(canvas, 0, pageCanvasStartY, canvasWidth, segmentHeightOnCanvas, 0, 0, canvasWidth, segmentHeightOnCanvas);
 
         const pageImgData = pageCanvas.toDataURL('image/png');
-        const segmentImgHeightInPdf = imgWidthInPdf * (segmentHeightOnCanvas / canvasWidth);
+        const segmentImgHeightInPdf = imgWidthInPdf * (segmentHeightOnCanvas / canvasWidth); // Calculate height for this segment in PDF
 
         if (position !== 20) { // If it's not the first segment (which starts at position 20)
           pdf.addPage();
-          position = 20; // Reset position for new page
+          position = 20; // Reset position for new page with top margin
         }
 
         pdf.addImage(pageImgData, 'PNG', 20, position, imgWidthInPdf, segmentImgHeightInPdf);
@@ -335,11 +339,12 @@ ${factChecksMd.trim()}
   const justification = detectedArticleData?.justification;
   const factChecks = detectedArticleData?.factChecks;
   
-  const aiGeneratedTitle = isGenerated ? (articleData as GeneratedArticle).title : null;
+  const cardTitle = isGenerated 
+    ? (articleData as GeneratedArticle).title 
+    : (detectedArticleData?.title || "Analysis Report");
   
-  const justificationSummaryPoints = useMemo(() => getJustificationSummary(justification), [justification]);
-
   const ActionMenu = () => (
+    // Show menu only if it's a saved article (has an id) and onDelete callback is provided (meaning it's on SavedHistoryPage)
     article.id && onDelete && user?.uid ? (
       <DropdownMenu>
         <DropdownMenuTriggerPrimitive asChild>
@@ -347,7 +352,7 @@ ${factChecksMd.trim()}
             variant="ghost"
             size="icon"
             className="h-8 w-8 shrink-0"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()} // Prevent card click if any
           >
             <MoreVertical className="h-4 w-4" />
             <span className="sr-only">Article Options</span>
@@ -384,77 +389,60 @@ ${factChecksMd.trim()}
         >
           <Image
             src={(articleData as GeneratedArticle).imageUrl!}
-            alt={`Header for article titled: ${aiGeneratedTitle ? aiGeneratedTitle.replace(/[^a-zA-Z0-9 ]/g, "") : 'Generated Article'}`}
+            alt={`Header for article titled: ${cardTitle.replace(/[^a-zA-Z0-9 ]/g, "")}`}
             layout="fill"
             objectFit="cover"
           />
         </div>
       )}
 
-      {isGenerated ? (
-        <CardHeader className='flex flex-row items-start justify-between'>
-            <div className="flex-grow">
-                <CardTitle className="font-headline text-xl flex items-center">
-                    <Bot className="mr-2 h-6 w-6 text-primary" />
-                    {aiGeneratedTitle || 'AI Generated Article'}
-                </CardTitle>
-                <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                    <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
-                    <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Category: {(articleData as GeneratedArticle).category}</span>
-                    <span className="flex items-center"><MessageSquareQuote className="mr-1 h-3 w-3" /> Tone: {(articleData as GeneratedArticle).tone}</span>
-                </div>
-            </div>
-            <div className="ml-2 shrink-0">
-                <ActionMenu />
-            </div>
-        </CardHeader>
-      ) : (
-        <CardHeader className='flex flex-row items-start justify-between gap-2'>
-            <div className="flex-grow">
-                <CardTitle className="font-headline text-xl flex items-center">
-                {resultLabel === 'Real' ?
-                    <CheckCircle className="mr-2 h-6 w-6 text-green-500" /> :
-                    <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
-                }
-                Detection Result
-                </CardTitle>
-                <CardDescription>
+      <CardHeader className='flex flex-row items-start justify-between gap-2'>
+          <div className="flex-grow">
+              <CardTitle className="font-headline text-xl flex items-center">
+                  {isGenerated ? (
+                      <Bot className="mr-2 h-6 w-6 text-primary" />
+                  ) : (
+                      resultLabel === 'Real' ?
+                      <CheckCircle className="mr-2 h-6 w-6 text-green-500" /> :
+                      <AlertTriangle className="mr-2 h-6 w-6 text-destructive" />
+                  )}
+                  {cardTitle}
+              </CardTitle>
+              {isGenerated && (
+                  <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                      <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
+                      <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Category: {(articleData as GeneratedArticle).category}</span>
+                      <span className="flex items-center"><MessageSquareQuote className="mr-1 h-3 w-3" /> Tone: {(articleData as GeneratedArticle).tone}</span>
+                  </div>
+              )}
+              {!isGenerated && detectedArticleData && (
+                 <CardDescription className="mt-1">
                     Confidence: {confidenceScore}%
                 </CardDescription>
-            </div>
-            <div className="flex items-center space-x-2 shrink-0">
-                <TooltipProvider delayDuration={0}>
-                    <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Badge variant={resultLabel === 'Real' ? 'success' : 'destructive'}>
-                         {resultLabel}
-                        </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>This article is predicted as {resultLabel} by the AI model.</p>
-                    </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-                <ActionMenu />
-            </div>
-        </CardHeader>
-      )}
+              )}
+          </div>
+          <div className="ml-2 shrink-0">
+            {/* Only show ActionMenu if it's a saved article from history */}
+            {article.id && onDelete && <ActionMenu />}
+          </div>
+      </CardHeader>
+      
 
       <CardContent className="flex-grow">
-        <div className="text-sm text-foreground m-0">
-            <ScrollArea className="max-h-[300px] pr-3"> {/* Added ScrollArea for long content */}
+        <ScrollArea className="max-h-[300px] pr-3">
+            <div className="text-sm text-foreground m-0">
                 <p className="whitespace-pre-wrap">
                     {fullText}
                 </p>
-            </ScrollArea>
-        </div>
+            </div>
+        </ScrollArea>
 
         {!isGenerated && justification && (
           <>
             <Separator className="my-3" />
             <div>
                 <h4 className="font-semibold text-md mb-2 flex items-center"><FileText className="mr-2 h-5 w-5 text-primary"/>AI Justification:</h4>
-                <ScrollArea className="max-h-[150px] pr-3"> {/* ScrollArea for justification */}
+                <ScrollArea className="max-h-[150px] pr-3">
                     <ul className="list-disc list-inside text-sm space-y-1 pl-2 text-muted-foreground">
                     {justification.split('\n').map((item, index) => {
                         const cleanedItem = item.trim().replace(/^[-*]\s*/, '');
@@ -470,7 +458,7 @@ ${factChecksMd.trim()}
             <Separator className="my-3" />
             <div>
                 <h4 className="font-semibold text-md mb-2 flex items-center"><ListChecks className="mr-2 h-5 w-5 text-primary"/>External Fact-Checks (Mock Data):</h4>
-                <ScrollArea className="max-h-[200px] pr-3"> {/* ScrollArea for fact checks */}
+                <ScrollArea className="max-h-[200px] pr-3">
                     <div className="space-y-3">
                     {factChecks.map((fc, index) => (
                         <div key={index} className="p-3 border rounded-md bg-secondary/30">
@@ -520,6 +508,20 @@ ${factChecksMd.trim()}
             </TooltipProvider>
           )}
         </div>
+         {!isGenerated && detectedArticleData && (
+             <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                <TooltipTrigger asChild>
+                    <Badge variant={resultLabel === 'Real' ? 'success' : 'destructive'} className="shrink-0 mt-2 xs:mt-0">
+                        {resultLabel}
+                    </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>This article is predicted as {resultLabel} by the AI model.</p>
+                </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        )}
       </CardFooter>
 
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
@@ -542,4 +544,3 @@ ${factChecksMd.trim()}
     </Card>
   );
 }
-

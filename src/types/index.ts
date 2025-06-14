@@ -9,9 +9,9 @@ export interface GeneratedArticle {
   id?: string;
   userId?: string;
   type: 'generated';
-  title: string;
+  title: string; // AI-generated title for the article
   content: string;
-  topic: string;
+  topic: string; // User-provided topic
   category: string;
   tone: string;
   timestamp: string;
@@ -29,6 +29,7 @@ export interface DetectedArticle {
   id?: string;
   userId?: string;
   type: 'detected';
+  title?: string; // AI-generated or snippet-based title for the analyzed text
   text: string;
   result: {
     label: 'Real' | 'Fake';

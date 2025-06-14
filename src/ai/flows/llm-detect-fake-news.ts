@@ -25,6 +25,7 @@ const FactCheckResultSchema = z.object({
 });
 
 const LlmDetectFakeNewsOutputSchema = z.object({
+  suggestedTitle: z.string().optional().describe('A concise, AI-generated title summarizing the analyzed article text (max 15 words).'),
   label: z.enum(['Real', 'Fake']).describe('The predicted label for the article (Real or Fake).'),
   confidence: z.number().min(0).max(100).describe('The confidence score of the prediction (0-100).'),
   justification: z.string().optional().describe('Bullet-point reasons supporting the prediction (2-3 main points, plain text).'),
@@ -45,7 +46,7 @@ const externalFactCheckerTool = ai.defineTool(
   async (input) => {
     try {
         // In a real implementation, this would call an external API (e.g., Google Fact Check API)
-        console.log("Mock externalFactCheckerTool called with text snippet:", input.articleText.substring(0, 100) + "...");
+        console.log("[VeritasAI] Mock externalFactCheckerTool called with text snippet:", input.articleText.substring(0, 100) + "...");
         // Simulate some processing time
         await new Promise(resolve => setTimeout(resolve, 500));
         
@@ -62,7 +63,7 @@ const externalFactCheckerTool = ai.defineTool(
         }
         return [];
     } catch (toolError: any) {
-        console.error("Error in externalFactCheckerTool (mock):", toolError);
+        console.error("[VeritasAI] Error in externalFactCheckerTool (mock):", toolError);
         // Even for a mock tool, it's good practice to handle errors.
         // In a real tool, you'd throw an error that the calling flow can handle.
         // For this mock, we'll just return an empty array to simulate failure.
@@ -76,8 +77,11 @@ export async function llmDetectFakeNews(input: LlmDetectFakeNewsInput): Promise<
   try {
     return await llmDetectFakeNewsFlow(input);
   } catch (error: any) {
-    console.error("Error in llmDetectFakeNews flow execution:", error);
-    throw new Error(`LLM-based detection failed: ${error.message || 'An unexpected error occurred in the LLM detection flow.'}`);
+    console.error("[VeritasAI] Error in llmDetectFakeNews flow execution:", error);
+    if (error instanceof Error) {
+      throw new Error(`LLM-based detection failed: ${error.message || 'An unexpected error occurred in the LLM detection flow.'}`);
+    }
+    throw new Error('LLM-based detection failed due to an unexpected server-side problem. Please check logs.');
   }
 }
 
@@ -88,6 +92,7 @@ const llmDetectFakeNewsPrompt = ai.definePrompt({
   output: {schema: LlmDetectFakeNewsOutputSchema},
   prompt: `You are an AI assistant specializing in fake news detection and analysis.
 Analyze the following news article text.
+You MUST generate a concise, representative title for the article, no more than 15 words long. This title should summarize the main topic or claim of the article.
 Based on your analysis, determine if the article is 'Real' or 'Fake'.
 You MUST provide a confidence score (an integer between 0 and 100) for your prediction.
 You MUST provide a brief justification for your prediction, consisting of 2 to 3 main bullet points. Each bullet point should be a short sentence. Do NOT use HTML formatting in the justification; provide plain text bullet points, each starting with a hyphen (-) or asterisk (*).
@@ -120,15 +125,15 @@ const llmDetectFakeNewsFlow = ai.defineFlow(
         if (candidates && candidates.length > 0) {
             const firstCandidate = candidates[0];
             if (firstCandidate.finishReason === 'SAFETY') {
-                console.warn('LLM detection blocked by safety filters for input:', input.articleText.substring(0,100), 'Finish message:', firstCandidate.finishMessage);
+                console.warn('[VeritasAI] LLM detection blocked by safety filters for input:', input.articleText.substring(0,100), 'Finish message:', firstCandidate.finishMessage);
                 throw new Error("The AI could not analyze this article due to safety content policies. Please try different content.");
             }
              if (firstCandidate.finishReason === 'RECITATION') {
-                 console.warn('LLM detection blocked due to recitation policy for input:', input.articleText.substring(0,100), 'Finish message:', firstCandidate.finishMessage);
+                 console.warn('[VeritasAI] LLM detection blocked due to recitation policy for input:', input.articleText.substring(0,100), 'Finish message:', firstCandidate.finishMessage);
                 throw new Error("The AI could not analyze this article as it might resemble copyrighted material. Please try different content.");
             }
         }
-        console.error('LLM detection failed: AI did not return a valid detection structure for input:', input.articleText.substring(0,100));
+        console.error('[VeritasAI] LLM detection failed: AI did not return a valid detection structure for input:', input.articleText.substring(0,100));
         throw new Error('The LLM AI model did not return a valid detection response. Please try again later.');
       }
 
@@ -136,29 +141,35 @@ const llmDetectFakeNewsFlow = ai.defineFlow(
           output.confidence = parseFloat(output.confidence);
       }
       if (isNaN(output.confidence) || output.confidence === undefined || output.confidence === null) {
-          console.warn("LLM returned non-numeric or missing confidence, defaulted to 50 for input:", input.articleText.substring(0,100), "Received confidence:", output.confidence);
+          console.warn("[VeritasAI] LLM returned non-numeric or missing confidence, defaulted to 50 for input:", input.articleText.substring(0,100), "Received confidence:", output.confidence);
           output.confidence = 50; // Default confidence if parsing fails or value is invalid
       }
       output.confidence = Math.max(0, Math.min(100, parseFloat(output.confidence.toFixed(1))));
 
       if (!output.label) {
-          console.warn("LLM returned missing label, defaulted to 'Fake' for input:", input.articleText.substring(0,100));
+          console.warn("[VeritasAI] LLM returned missing label, defaulted to 'Fake' for input:", input.articleText.substring(0,100));
           output.label = 'Fake'; // Default label if missing
+      }
+      
+      if (!output.suggestedTitle) {
+          console.warn("[VeritasAI] LLM returned missing suggestedTitle, will be handled by client for input:", input.articleText.substring(0,100));
+          // Client-side will create a snippet title if this is missing.
       }
       
       // Ensure justification is a string if it exists
       if (output.justification && typeof output.justification !== 'string') {
-          console.warn("LLM returned non-string justification, attempting to stringify for input:", input.articleText.substring(0,100));
+          console.warn("[VeritasAI] LLM returned non-string justification, attempting to stringify for input:", input.articleText.substring(0,100));
           output.justification = JSON.stringify(output.justification);
       }
       
       return output;
     } catch (error: any) {
-        console.error("Error during LLM detection prompt execution:", error);
+        console.error("[VeritasAI] Error during LLM detection prompt execution in flow:", error);
          if (error instanceof Error && (error.message.includes("safety content policies") || error.message.includes("copyrighted material") || error.message.includes("AI model did not return a valid detection response"))) {
             throw error; // Re-throw specific errors
         }
-        throw new Error(`LLM-based analysis encountered an issue: ${error.message || 'Unknown error'}. Please try again.`);
+        // For other errors that made it this far, provide a slightly more specific generic message
+        throw new Error(`LLM-based analysis encountered an issue: ${error.message || 'Unknown error during prompt execution'}. Please try again.`);
     }
   }
 );

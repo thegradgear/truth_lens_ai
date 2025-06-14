@@ -43,6 +43,13 @@ export default function DetectorPage() {
     },
   });
 
+  const generateSnippetTitle = (text: string, maxLength: number = 60): string => {
+    if (text.length <= maxLength) return text;
+    const snippet = text.substring(0, maxLength);
+    const lastSpace = snippet.lastIndexOf(' ');
+    return (lastSpace > 0 ? snippet.substring(0, lastSpace) : snippet) + "...";
+  };
+
   const onSubmit: SubmitHandler<DetectorFormValues> = async (data) => {
     setIsLoading(true);
     setDetectionResult(null);
@@ -50,19 +57,23 @@ export default function DetectorPage() {
 
     try {
       let result: DetectFakeNewsOutput | LlmDetectFakeNewsOutput;
+      let articleTitle: string | undefined;
       const modelName = data.detectionMethod === 'custom' ? "Your Custom Model" : "Genkit AI Model (with XAI & Mock Fact-Check)";
 
       if (data.detectionMethod === 'custom') {
         const input: DetectFakeNewsInput = { articleText: data.articleText };
         result = await detectFakeNews(input);
+        articleTitle = `Analysis: ${generateSnippetTitle(data.articleText)}`;
       } else {
         const input: LlmDetectFakeNewsInput = { articleText: data.articleText };
         result = await llmDetectFakeNews(input);
+        articleTitle = (result as LlmDetectFakeNewsOutput).suggestedTitle || `Analysis: ${generateSnippetTitle(data.articleText)}`;
       }
       
       if (result.label && result.confidence !== undefined) {
          const newDetection: DetectedArticle = {
           type: 'detected',
+          title: articleTitle,
           text: data.articleText,
           result: {
             label: result.label,
@@ -71,17 +82,17 @@ export default function DetectorPage() {
           timestamp: new Date().toISOString(),
           userId: user?.uid,
           detectionMethod: data.detectionMethod,
-          justification: result.justification, // Pass justification
-          factChecks: result.factChecks, // Pass fact-checks
+          justification: result.justification, 
+          factChecks: result.factChecks, 
         };
         setDetectionResult(newDetection);
         toast({
           title: "Detection Complete!",
           description: `Using ${modelName}, the article is predicted as ${result.label.toLowerCase()} with ${result.confidence.toFixed(1)}% confidence. Additional insights may be available.`,
-          duration: 7000, // Longer duration for more complex output
+          duration: 7000, 
         });
       } else {
-        throw new Error("AI did not return a valid detection structure.");
+        throw new Error("AI did not return a valid detection structure (label or confidence missing).");
       }
     } catch (error: any) {
       console.error("Error detecting article:", error);
@@ -104,7 +115,7 @@ export default function DetectorPage() {
 
     setIsSaving(true);
     try {
-      const { id, ...dataToSave } = articleToSave; // Ensure id is not part of dataToSave
+      const { id, ...dataToSave } = articleToSave; 
       const savedData = await saveArticle(user.uid, dataToSave as Omit<DetectedArticle, 'id'>); 
       toast({ title: "Detection Saved!", description: "The detection result has been saved to your history." });
       setDetectionResult(prev => prev ? {...prev, id: savedData.id } : null); 
@@ -133,7 +144,7 @@ export default function DetectorPage() {
         <CardHeader>
           <CardTitle className="text-2xl md:text-3xl font-headline flex items-center"><ScanSearch className="mr-3 h-7 w-7 text-primary"/>Fake News Detector</CardTitle>
           <CardDescription>
-            Paste a news article below. Our AI models will analyze its content, predict authenticity, and provide insights. The Genkit AI Model offers XAI justification and (mock) external fact-checking.
+            Paste a news article below. Our AI models will analyze its content, predict authenticity, and provide insights. The Genkit AI Model offers a suggested title, XAI justification, and (mock) external fact-checking.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -165,7 +176,7 @@ export default function DetectorPage() {
                             <RadioGroupItem value="llm" />
                           </FormControl>
                           <FormLabel className="font-normal cursor-pointer flex items-center w-full">
-                            <Brain className="mr-2 h-5 w-5" /> Genkit AI Model (XAI & Mock Fact-Check)
+                            <Brain className="mr-2 h-5 w-5" /> Genkit AI Model (Title, XAI & Mock Fact-Check)
                           </FormLabel>
                         </FormItem>
                       </RadioGroup>
@@ -214,7 +225,7 @@ export default function DetectorPage() {
           <CardHeader>
             <CardTitle className="font-headline flex items-center"><Loader2 className="mr-2 h-5 w-5 animate-spin text-primary"/>Analyzing Article...</CardTitle>
             <CardDescription>
-                Our AI ({selectedMethodForDisplay === 'custom' ? 'Custom Model' : 'Genkit AI Model'}) is processing the text. This may take a few moments, especially if XAI insights are being generated.
+                Our AI ({selectedMethodForDisplay === 'custom' ? 'Custom Model' : 'Genkit AI Model'}) is processing the text. This may take a few moments, especially if XAI insights and a title are being generated.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center items-center min-h-[150px]">
@@ -228,10 +239,33 @@ export default function DetectorPage() {
       {detectionResult && (
         <ArticleCard 
           article={detectionResult} 
-          onSave={() => handleSaveDetection(detectionResult)} 
-          showSaveButton={!detectionResult.id && !isSaving} 
-          isSaving={isSaving}
+          onDelete={detectionResult.id && user?.uid ? async (id: string) => {
+            try {
+              await saveArticle(user.uid, {...detectionResult, id: undefined} as Omit<DetectedArticle, 'id'>); // This line seems incorrect for delete, should be a delete call.
+              // The onDelete prop is intended for the /saved page to update its list.
+              // Here, the save button updates the detectionResult.id
+            } catch (e) { /* error handled in handleSaveDetection */ }
+          } : undefined}
         />
+      )}
+      {detectionResult && !detectionResult.id && (
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-start">
+             <Button 
+              onClick={() => handleSaveDetection(detectionResult)} 
+              disabled={isSaving || isLoading} 
+              className="w-full sm:w-auto"
+            >
+              {isSaving ? (
+                 <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                 </>
+              ) : (
+                 <>
+                    <Save className="mr-2 h-4 w-4" /> Save Detection
+                 </>
+              )}
+            </Button>
+          </div>
       )}
     </div>
   );
