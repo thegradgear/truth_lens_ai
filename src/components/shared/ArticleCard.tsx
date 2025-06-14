@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button'; // Added buttonVariants for consistency if needed elsewhere.
 import type { GeneratedArticle, DetectedArticle, Article } from '@/types';
 import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download, Trash2, MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
@@ -33,7 +33,9 @@ import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useAuth } from '@/contexts/AuthContext';
-import { deleteArticle as deleteArticleFromDb } from '@/lib/firebase';
+import { deleteArticle as deleteArticleFromDb, saveArticle } from '@/lib/firebase';
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
 
 export interface ArticleCardProps {
@@ -264,7 +266,7 @@ ${factChecksMd.trim()}
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
-      const ratio = canvasWidth / canvasHeight;
+      // const ratio = canvasWidth / canvasHeight; // Not directly used for multi-page
       const imgWidthInPdf = pdfWidth - 40; 
       
       let position = 20; 
@@ -287,9 +289,9 @@ ${factChecksMd.trim()}
         const pageImgData = pageCanvas.toDataURL('image/png');
         const segmentImgHeightInPdf = imgWidthInPdf * (segmentHeightOnCanvas / canvasWidth); 
 
-        if (position !== 20) { 
+        if (position !== 20) { // if it's not the first page for this canvas
           pdf.addPage();
-          position = 20; 
+          position = 20; // Reset position for new page
         }
 
         pdf.addImage(pageImgData, 'PNG', 20, position, imgWidthInPdf, segmentImgHeightInPdf);
@@ -297,8 +299,8 @@ ${factChecksMd.trim()}
         remainingCanvasHeight -= segmentHeightOnCanvas;
         pageCanvasStartY += segmentHeightOnCanvas;
         
-        if (remainingCanvasHeight > 0) { 
-           position = pdfHeight; 
+        if (remainingCanvasHeight > 0) { // If more content, prepare for a new page in the next iteration
+           position = pdfHeight; // Mark that next addImage should be on a new page (will trigger addPage)
         }
       }
 
@@ -383,24 +385,27 @@ ${factChecksMd.trim()}
       )}
 
       <CardHeader>
-        <div className="flex items-center justify-between w-full"> 
-          <CardTitle className="font-headline text-xl flex items-center mr-2 flex-grow">
-            {isGenerated ? (
+        <div className="flex items-center justify-between w-full"> {/* Main row for title, badge, menu */}
+          <CardTitle className="font-headline text-xl flex items-center mr-2 flex-grow min-w-0"> {/* Title part */}
+            {isGenerated ? ( // Icon logic
               <Bot className="mr-2 h-6 w-6 text-primary shrink-0" />
             ) : (
               resultLabel === 'Real' ?
               <CheckCircle className="mr-2 h-6 w-6 text-green-500 shrink-0" /> :
               <AlertTriangle className="mr-2 h-6 w-6 text-destructive shrink-0" />
             )}
-            <span className="truncate">{cardTitle}</span>
+            <span className="truncate">{cardTitle}</span> {/* Title text with truncation */}
           </CardTitle>
           
-          <div className="flex items-center shrink-0 ml-auto">
-            {!isGenerated && detectedArticleData && (
+          <div className="flex items-center shrink-0"> {/* Group for badge and action menu */}
+            {!isGenerated && detectedArticleData && ( // Badge
               <TooltipProvider delayDuration={0}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                     <Badge variant={resultLabel === 'Real' ? 'success' : 'destructive'} className="mr-2">
+                     <Badge 
+                       variant={resultLabel === 'Real' ? 'success' : 'destructive'} 
+                       className={cn(article.id && onDelete && user?.uid && "mr-2")} // Add margin if ActionMenu is also present
+                     >
                         {resultLabel}
                       </Badge>
                   </TooltipTrigger>
@@ -410,7 +415,7 @@ ${factChecksMd.trim()}
                 </Tooltip>
               </TooltipProvider>
             )}
-            {article.id && onDelete && user?.uid && <ActionMenu />}
+            {article.id && onDelete && user?.uid && <ActionMenu />} {/* Action Menu */}
           </div>
         </div>
 
@@ -530,4 +535,3 @@ ${factChecksMd.trim()}
     </Card>
   );
 }
-
