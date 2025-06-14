@@ -117,7 +117,7 @@ export default function DetectorPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="bg-secondary/70 border-primary/30">
+      <Card className="border-primary/30">
         <CardHeader className="flex flex-row items-start gap-4">
           <Lightbulb className="h-8 w-8 text-primary mt-1 shrink-0" />
           <div>
@@ -236,3 +236,5 @@ export default function DetectorPage() {
     </div>
   );
 }
+
+    
