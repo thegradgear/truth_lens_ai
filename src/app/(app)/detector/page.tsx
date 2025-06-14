@@ -117,7 +117,7 @@ export default function DetectorPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="border-primary/30">
+      <Card>
         <CardHeader className="flex flex-row items-start gap-4">
           <Lightbulb className="h-8 w-8 text-primary mt-1 shrink-0" />
           <div>
@@ -157,7 +157,7 @@ export default function DetectorPage() {
                             <RadioGroupItem value="custom" />
                           </FormControl>
                           <FormLabel className="font-normal cursor-pointer flex items-center w-full">
-                            <Database className="mr-2 h-5 w-5 text-primary/80"/> Custom Model (Render API)
+                            <Database className="mr-2 h-5 w-5"/> Custom Model (Render API)
                           </FormLabel>
                         </FormItem>
                         <FormItem className="flex items-center space-x-3 space-y-0 p-4 border rounded-md flex-1 hover:bg-accent/50 has-[[data-state=checked]]:bg-accent has-[[data-state=checked]]:text-accent-foreground transition-colors">
@@ -165,7 +165,7 @@ export default function DetectorPage() {
                             <RadioGroupItem value="llm" />
                           </FormControl>
                           <FormLabel className="font-normal cursor-pointer flex items-center w-full">
-                            <Brain className="mr-2 h-5 w-5 text-primary/80" /> Genkit AI Model (XAI & Mock Fact-Check)
+                            <Brain className="mr-2 h-5 w-5" /> Genkit AI Model (XAI & Mock Fact-Check)
                           </FormLabel>
                         </FormItem>
                       </RadioGroup>
