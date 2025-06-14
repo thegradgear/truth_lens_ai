@@ -31,8 +31,23 @@ export async function generateFakeNewsArticle(
   try {
     return await generateFakeNewsArticleFlow(input);
   } catch (error: any) {
-    console.error("Error in generateFakeNewsArticle flow execution:", error);
-    throw new Error(`Failed to generate article: ${error.message || 'An unexpected error occurred in the article generation flow.'}`);
+    console.error("[VeritasAI] Error in generateFakeNewsArticle flow execution:", error);
+    if (error instanceof Error) {
+        const flowErrorMessage = error.message || '';
+        // Check for known, specific error messages from the inner flow
+        if (flowErrorMessage.startsWith("The AI could not generate") || 
+            flowErrorMessage.startsWith("AI model did not return") ||
+            flowErrorMessage.startsWith("Article generation error:") ||
+            flowErrorMessage.startsWith("Article generation failed:") ||
+            flowErrorMessage.startsWith("An unexpected issue occurred during AI article processing") 
+            ) {
+            throw new Error(flowErrorMessage); 
+        }
+        // For other errors that made it this far, provide a slightly more specific generic message
+        throw new Error(`Failed to generate article: An unexpected server issue occurred. (Details: ${flowErrorMessage.substring(0,150)})`);
+    }
+    // Fallback if not an Error instance (should be rare due to inner catch logic)
+    throw new Error('Failed to generate article due to an unexpected server-side problem. Please check logs.');
   }
 }
 
@@ -77,24 +92,36 @@ const generateFakeNewsArticleFlow = ai.defineFlow(
         if (candidates && candidates.length > 0) {
             const firstCandidate = candidates[0];
             if (firstCandidate.finishReason === 'SAFETY') {
-                console.warn('Article generation blocked by safety filters for input:', input, 'Finish message:', firstCandidate.finishMessage);
+                console.warn('[VeritasAI] Article generation blocked by safety filters for input:', input, 'Finish message:', firstCandidate.finishMessage);
                 throw new Error("The AI could not generate an article for this topic due to safety content policies. Please try a different topic.");
             }
             if (firstCandidate.finishReason === 'RECITATION') {
-                 console.warn('Article generation blocked due to recitation policy for input:', input, 'Finish message:', firstCandidate.finishMessage);
+                 console.warn('[VeritasAI] Article generation blocked due to recitation policy for input:', input, 'Finish message:', firstCandidate.finishMessage);
                 throw new Error("The AI could not generate an article as it might resemble copyrighted material. Please try a different topic.");
             }
         }
-        console.error('Article generation failed: AI did not return a valid article structure (title and/or body missing) for input:', input);
+        console.error('[VeritasAI] Article generation failed: AI did not return a valid article structure (title and/or body missing) for input:', input);
         throw new Error('AI model did not return a complete article (title or body). Please try modifying your input or try again later.');
       }
       return output;
     } catch (error: any) {
-        console.error("Error during article generation prompt execution:", error);
-        if (error instanceof Error && (error.message.includes("safety content policies") || error.message.includes("copyrighted material") || error.message.includes("AI model did not return a complete article"))) {
-            throw error; // Re-throw specific errors
+        console.error("[VeritasAI] Error during article generation prompt execution in flow:", error);
+        if (error instanceof Error) {
+          // Re-throw known user-friendly errors directly
+          if (error.message.startsWith("The AI could not generate") || 
+              error.message.startsWith("AI model did not return")) {
+            throw error; 
+          }
+          // For other Error instances, create a new simplified error.
+          // This helps ensure the message is clean for serialization and doesn't expose too much.
+          throw new Error(`Article generation error: ${error.message.substring(0, 200)}`); 
+        } else if (typeof error === 'string') {
+          // If the error is just a string
+          throw new Error(`Article generation failed: ${error.substring(0,200)}`);
+        } else {
+          // Fallback for truly unknown error structures from the prompt/Genkit layer
+          throw new Error("An unexpected issue occurred during AI article processing. Please check server logs for details.");
         }
-        throw new Error(`Article generation encountered an issue: ${error.message || 'Unknown error'}. Please try again.`);
     }
   }
 );
