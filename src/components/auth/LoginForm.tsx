@@ -29,7 +29,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label"; // Added missing import
+import { Label } from "@/components/ui/label";
 
 const loginFormSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -131,16 +131,61 @@ export function LoginForm() {
               <FormItem>
                 <div className="flex justify-between items-center">
                   <FormLabel>Password</FormLabel>
-                  <DialogTrigger asChild>
-                     <Button 
-                        type="button" 
-                        variant="link" 
-                        className="p-0 h-auto text-xs"
-                        onClick={() => setIsResetDialogOpen(true)}
-                      >
-                        Forgot password?
-                      </Button>
-                  </DialogTrigger>
+                  <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                    <DialogTrigger asChild>
+                       <Button
+                          type="button"
+                          variant="link"
+                          className="p-0 h-auto text-xs"
+                          onClick={() => setIsResetDialogOpen(true)} // Necessary for controlled dialog
+                        >
+                          Forgot password?
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Reset Your Password</DialogTitle>
+                        <DialogDescription>
+                          Enter the email address associated with your account, and we&apos;ll send you a link to reset your password.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-2 pb-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="reset-email">Email Address</Label>
+                          <Input
+                            id="reset-email"
+                            type="email"
+                            placeholder="your@email.com"
+                            value={resetEmail}
+                            onChange={(e) => {
+                                setResetEmail(e.target.value);
+                                if (resetEmailError) setResetEmailError(null);
+                            }}
+                            disabled={isSendingResetEmail}
+                          />
+                          {resetEmailError && <p className="text-sm text-destructive">{resetEmailError}</p>}
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button type="button" variant="outline" disabled={isSendingResetEmail}>
+                            Cancel
+                          </Button>
+                        </DialogClose>
+                        <Button type="button" onClick={handlePasswordResetRequest} disabled={isSendingResetEmail || !resetEmail}>
+                          {isSendingResetEmail ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Mail className="mr-2 h-4 w-4" /> Send Reset Email
+                            </>
+                          )}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
                 <div className="relative">
                   <FormControl>
@@ -176,52 +221,6 @@ export function LoginForm() {
           </p>
         </form>
       </Form>
-
-      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reset Your Password</DialogTitle>
-            <DialogDescription>
-              Enter the email address associated with your account, and we&apos;ll send you a link to reset your password.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2 pb-4">
-            <div className="space-y-2">
-              <Label htmlFor="reset-email">Email Address</Label>
-              <Input
-                id="reset-email"
-                type="email"
-                placeholder="your@email.com"
-                value={resetEmail}
-                onChange={(e) => {
-                    setResetEmail(e.target.value);
-                    if (resetEmailError) setResetEmailError(null);
-                }}
-                disabled={isSendingResetEmail}
-              />
-              {resetEmailError && <p className="text-sm text-destructive">{resetEmailError}</p>}
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline" disabled={isSendingResetEmail}>
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button type="button" onClick={handlePasswordResetRequest} disabled={isSendingResetEmail || !resetEmail}>
-              {isSendingResetEmail ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...
-                </>
-              ) : (
-                <>
-                  <Mail className="mr-2 h-4 w-4" /> Send Reset Email
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
