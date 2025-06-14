@@ -73,12 +73,13 @@ export default function PlayGamePage() {
         try {
           const params = generateRandomArticleParams();
           const result: GenerateFakeNewsArticleOutput = await generateFakeNewsArticle(params);
-          if (!result.article) {
-            console.error(`AI failed to generate article content for question ${index + 1}.`);
+          if (!result.article || !result.title) { // Check for title as well
+            console.error(`AI failed to generate article content or title for question ${index + 1}.`);
             toast({ title: `Article ${index + 1} generation failed`, description: "Skipping this article.", variant: "destructive", duration: 2000 });
             return null;
           }
-          const title = `${params.category}: A ${params.tone.toLowerCase()} take on "${params.topic}"`;
+          // Use the AI-generated title
+          const title = result.title; 
           const correctAnswerForGame: 'Real' | 'Fake' = Math.random() < 0.5 ? 'Real' : 'Fake';
           
           return {
@@ -248,7 +249,7 @@ export default function PlayGamePage() {
         <Progress value={((currentQuestionIndex + 1) / gameArticles.length) * 100} className="mt-2 h-2" />
       </CardHeader>
       <CardContent className="space-y-4">
-        <Card className="bg-secondary/30">
+        <Card className="bg-muted">
             <CardHeader className="pb-2 pt-4">
                 <CardTitle className="text-lg font-semibold">{currentTitle || "Article Title"}</CardTitle>
             </CardHeader>
@@ -264,7 +265,7 @@ export default function PlayGamePage() {
           <Button 
             size="lg" 
             variant="outline" 
-            className="text-lg py-6 border-2 border-green-500 hover:bg-green-500/10 hover:text-green-600 data-[active='true']:bg-green-500 data-[active='true']:text-white"
+            className="text-lg py-6 hover:bg-green-500/10 hover:text-green-600 data-[active='true']:bg-green-500 data-[active='true']:text-white"
             onClick={() => handleGuess('Real')} 
             disabled={gamePhase === 'feedback'}
           >
@@ -273,7 +274,7 @@ export default function PlayGamePage() {
           <Button 
             size="lg" 
             variant="outline" 
-            className="text-lg py-6 border-2 border-red-500 hover:bg-red-500/10 hover:text-red-600 data-[active='true']:bg-red-500 data-[active='true']:text-white"
+            className="text-lg py-6 hover:bg-red-500/10 hover:text-red-600 data-[active='true']:bg-red-500 data-[active='true']:text-white"
             onClick={() => handleGuess('Fake')} 
             disabled={gamePhase === 'feedback'}
           >
