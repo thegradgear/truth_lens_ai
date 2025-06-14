@@ -55,12 +55,12 @@ export function AppNavbar() {
   const pathname = usePathname();
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
+  // Close sheet on pathname change if it's open
   React.useEffect(() => {
     if (isSheetOpen) {
       setIsSheetOpen(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, isSheetOpen, setIsSheetOpen]);
 
 
   const getInitials = (name?: string | null) => {
@@ -78,13 +78,13 @@ export function AppNavbar() {
         const isActive = pathname === item.href;
         const linkButton = (
           <Button
-            key={item.href} // Added key here
+            key={item.href} 
             variant={isActive ? "default" : "ghost"}
             asChild
             className={cn(
-              'justify-start w-full text-left', // Default for mobile/sidebar
-              mobile ? 'text-base py-3' : 'text-sm', // Mobile specific styles
-              !mobile && 'w-auto px-3' // Desktop specific styles
+              'justify-start w-full text-left', 
+              mobile ? 'text-base py-3' : 'text-sm', 
+              !mobile && 'w-auto px-3' 
             )}
           >
             <Link href={item.href}>
@@ -94,9 +94,10 @@ export function AppNavbar() {
           </Button>
         );
         if (mobile) {
+          // SheetClose will automatically close the sheet on click
           return <SheetClose asChild key={`${item.href}-mobile`}>{linkButton}</SheetClose>;
         }
-        return linkButton; // Directly return for desktop
+        return linkButton; 
       })}
     </>
   );
@@ -148,12 +149,10 @@ export function AppNavbar() {
         </div>
         
         <div className="flex items-center space-x-1 md:space-x-2 ml-auto">
-          {/* Navigation for large screens (lg and up) - Moved to the right */}
           <nav className="hidden lg:flex items-center space-x-1">
             <NavLinks />
           </nav>
           
-          {/* ThemeToggle visible on lg and up here */}
           <div className="hidden lg:block">
             <ThemeToggle align="end"/>
           </div>
@@ -193,7 +192,6 @@ export function AppNavbar() {
             </Button>
           )}
 
-          {/* Hamburger menu for screens smaller than lg (i.e., sm and md) */}
           <div className="lg:hidden">
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
@@ -237,4 +235,3 @@ export function AppNavbar() {
     </header>
   );
 }
-

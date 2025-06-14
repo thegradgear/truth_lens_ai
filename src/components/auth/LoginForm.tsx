@@ -18,7 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { LogIn, Eye, EyeOff, Mail, Loader2 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -57,14 +57,14 @@ export function LoginForm() {
     },
   });
 
-  const onSubmit: SubmitHandler<LoginFormValues> = async (data) => {
+  const onSubmit: SubmitHandler<LoginFormValues> = useCallback(async (data) => {
     try {
       await signIn(data.email, data.password);
       toast({
         title: "Login Successful",
         description: "Welcome back!",
       });
-      // Redirect is handled by AuthContext or AppLayout
+      // Redirect is handled by AuthContext or page effects
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -72,9 +72,9 @@ export function LoginForm() {
         variant: "destructive",
       });
     }
-  };
+  }, [signIn, toast]);
 
-  const handlePasswordResetRequest = async () => {
+  const handlePasswordResetRequest = useCallback(async () => {
     setResetEmailError(null);
     try {
       resetPasswordEmailSchema.parse(resetEmail); // Validate email
@@ -105,7 +105,7 @@ export function LoginForm() {
     } finally {
       setIsSendingResetEmail(false);
     }
-  };
+  }, [sendPasswordResetEmail, resetEmail, toast]);
 
   return (
     <>
@@ -118,7 +118,7 @@ export function LoginForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="your@email.com" {...field} />
+                  <Input type="email" placeholder="your@email.com" {...field} disabled={form.formState.isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -137,7 +137,8 @@ export function LoginForm() {
                           type="button"
                           variant="link"
                           className="p-0 h-auto text-xs"
-                          onClick={() => setIsResetDialogOpen(true)} // Necessary for controlled dialog
+                          onClick={() => setIsResetDialogOpen(true)}
+                          disabled={form.formState.isSubmitting}
                         >
                           Forgot password?
                         </Button>
@@ -189,7 +190,7 @@ export function LoginForm() {
                 </div>
                 <div className="relative">
                   <FormControl>
-                    <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} />
+                    <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} disabled={form.formState.isSubmitting} />
                   </FormControl>
                   <Button
                     type="button"
@@ -197,6 +198,7 @@ export function LoginForm() {
                     size="icon"
                     className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={form.formState.isSubmitting}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
@@ -207,7 +209,11 @@ export function LoginForm() {
             )}
           />
           <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-            {form.formState.isSubmitting ? "Signing In..." : (
+            {form.formState.isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing In...
+              </>
+            ) : (
               <>
                 <LogIn className="mr-2 h-4 w-4" /> Sign In
               </>

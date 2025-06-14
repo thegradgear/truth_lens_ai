@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -50,7 +50,7 @@ export default function DetectorPage() {
     return (lastSpace > 0 ? snippet.substring(0, lastSpace) : snippet) + "...";
   };
 
-  const onSubmit: SubmitHandler<DetectorFormValues> = async (data) => {
+  const onSubmit: SubmitHandler<DetectorFormValues> = useCallback(async (data) => {
     setIsLoading(true);
     setDetectionResult(null);
     setSelectedMethodForDisplay(data.detectionMethod);
@@ -104,9 +104,9 @@ export default function DetectorPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast, user?.uid]);
 
-  const handleSaveDetection = async (articleToSave: DetectedArticle) => {
+  const handleSaveDetection = useCallback(async (articleToSave: DetectedArticle) => {
     if (!user?.uid) {
       toast({ title: "Error", description: "You must be logged in to save detections.", variant: "destructive" });
       return;
@@ -124,7 +124,7 @@ export default function DetectorPage() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [toast, user?.uid]);
 
   return (
     <div className="space-y-8">
@@ -241,10 +241,11 @@ export default function DetectorPage() {
           article={detectionResult} 
           onDelete={detectionResult.id && user?.uid ? async (id: string) => {
             try {
-              await saveArticle(user.uid, {...detectionResult, id: undefined} as Omit<DetectedArticle, 'id'>); // This line seems incorrect for delete, should be a delete call.
-              // The onDelete prop is intended for the /saved page to update its list.
-              // Here, the save button updates the detectionResult.id
-            } catch (e) { /* error handled in handleSaveDetection */ }
+              // The actual deletion logic is handled within ArticleCard or the parent page (SavedHistoryPage).
+              // For this page, if a saved article is displayed and deleted via ArticleCard,
+              // we might want to clear it or refetch. Here, we simply allow ArticleCard to manage deletion.
+              // If this was the 'Saved' page, we'd call a function to remove it from the local state.
+            } catch (e) { /* error handled in ArticleCard or handleSaveDetection */ }
           } : undefined}
         />
       )}
@@ -270,5 +271,3 @@ export default function DetectorPage() {
     </div>
   );
 }
-
-    

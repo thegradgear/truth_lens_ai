@@ -17,8 +17,8 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { UserPlus, Eye, EyeOff } from "lucide-react";
-import React, { useState } from "react";
+import { UserPlus, Eye, EyeOff, Loader2 } from "lucide-react";
+import React, { useState, useCallback } from "react";
 
 const signupFormSchema = z.object({
   displayName: z.string().min(2, { message: "Display name must be at least 2 characters." }).max(50, { message: "Display name cannot exceed 50 characters."}),
@@ -53,14 +53,14 @@ export function SignupForm() {
     },
   });
 
-  const onSubmit: SubmitHandler<SignupFormValues> = async (data) => {
+  const onSubmit: SubmitHandler<SignupFormValues> = useCallback(async (data) => {
     try {
       await signUp(data.email, data.password, data.displayName);
       toast({
         title: "Signup Successful",
         description: "Welcome to Truth Lens AI! Redirecting to dashboard...",
       });
-      // Redirect is handled by AuthContext or AppLayout
+      // Redirect is handled by AuthContext or page effects
     } catch (error: any) {
       toast({
         title: "Signup Failed",
@@ -68,7 +68,7 @@ export function SignupForm() {
         variant: "destructive",
       });
     }
-  };
+  }, [signUp, toast]);
 
   return (
     <Form {...form}>
@@ -80,7 +80,7 @@ export function SignupForm() {
             <FormItem>
               <FormLabel>Display Name</FormLabel>
               <FormControl>
-                <Input placeholder="Your Name" {...field} />
+                <Input placeholder="Your Name" {...field} disabled={form.formState.isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -93,7 +93,7 @@ export function SignupForm() {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="your@email.com" {...field} />
+                <Input type="email" placeholder="your@email.com" {...field} disabled={form.formState.isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -107,7 +107,7 @@ export function SignupForm() {
               <FormLabel>Password</FormLabel>
               <div className="relative">
                 <FormControl>
-                  <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} />
+                  <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} disabled={form.formState.isSubmitting} />
                 </FormControl>
                 <Button
                   type="button"
@@ -115,6 +115,7 @@ export function SignupForm() {
                   size="icon"
                   className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={form.formState.isSubmitting}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   <span className="sr-only">{showPassword ? "Hide password" : "Show password"}</span>
@@ -132,7 +133,7 @@ export function SignupForm() {
               <FormLabel>Confirm Password</FormLabel>
                <div className="relative">
                 <FormControl>
-                  <Input type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" {...field} />
+                  <Input type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" {...field} disabled={form.formState.isSubmitting} />
                 </FormControl>
                 <Button
                   type="button"
@@ -140,6 +141,7 @@ export function SignupForm() {
                   size="icon"
                   className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={form.formState.isSubmitting}
                 >
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   <span className="sr-only">{showConfirmPassword ? "Hide confirm password" : "Show confirm password"}</span>
@@ -150,7 +152,11 @@ export function SignupForm() {
           )}
         />
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-           {form.formState.isSubmitting ? "Creating Account..." : (
+           {form.formState.isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Account...
+            </>
+           ): (
             <>
               <UserPlus className="mr-2 h-4 w-4" /> Create Account
             </>

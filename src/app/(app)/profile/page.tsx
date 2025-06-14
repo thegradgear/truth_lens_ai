@@ -30,7 +30,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { UserCircle2, Edit3, Save, KeyRound, Loader2, Eye, EyeOff } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 
 const profileFormSchema = z.object({
   displayName: z.string().min(2, "Display name must be at least 2 characters.").max(50, "Display name too long."),
@@ -87,23 +87,24 @@ export default function ProfilePage() {
   const { handleSubmit: handleSubmitChangePassword, formState: { errors: passwordErrors, isSubmitting: isSubmittingPassword }, reset: resetPasswordFormFields } = changePasswordForm;
 
 
-  const onProfileSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
+  const onProfileSubmit: SubmitHandler<ProfileFormValues> = useCallback(async (data) => {
     // Simulate update (In a real app, you'd call an updateProfile method from AuthContext)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log("Profile update data:", data);
+    // For now, this is a placeholder and doesn't actually call a Firebase update for display name.
+    // A real implementation would require extending AuthContext.
+    setIsEditing(true); // Keep isSubmittingProfile pattern
+    await new Promise(resolve => setTimeout(resolve, 1000)); 
+    console.log("Profile update data (simulated):", data);
     toast({
       title: "Profile Updated (Simulated)",
-      description: "Your display name has been updated.",
+      description: "Your display name has been updated locally. Backend update not implemented in this simulation.",
     });
-    // Update user in context if real update happens
-    // if (user) {
-    //   // This would be part of a more complex updateUserProfile in AuthContext
-    //   (user as any).displayName = data.displayName; 
-    // }
+    // To make it reflect in UI immediately if a real update would happen:
+    // if (user) { (user as any).displayName = data.displayName; }
+    // setUser(prevUser => prevUser ? {...prevUser, displayName: data.displayName} : null); // If setUser was available here
     setIsEditing(false);
-  };
+  }, [toast]);
 
-  const onChangePasswordSubmit: SubmitHandler<ChangePasswordFormValues> = async (data) => {
+  const onChangePasswordSubmit: SubmitHandler<ChangePasswordFormValues> = useCallback(async (data) => {
     try {
       await updateUserPassword(data.newPassword);
       toast({
@@ -119,7 +120,7 @@ export default function ProfilePage() {
         variant: "destructive",
       });
     }
-  };
+  }, [toast, updateUserPassword, resetPasswordFormFields]);
   
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
@@ -335,4 +336,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

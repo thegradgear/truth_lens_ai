@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -54,7 +54,7 @@ export default function GeneratorPage() {
     },
   });
   
-  const onSubmitArticle: SubmitHandler<GeneratorFormValues> = async (data) => {
+  const onSubmitArticle: SubmitHandler<GeneratorFormValues> = useCallback(async (data) => {
     setIsLoadingArticle(true);
     setGeneratedArticle(null);
     setImageGenerationMessage("Generating article text and title...");
@@ -135,12 +135,13 @@ export default function GeneratorPage() {
       setImageGenerationMessage(null);
     } finally {
       setIsLoadingArticle(false);
+      // Clear message after a delay only if not still loading (e.g. another process started)
       setTimeout(() => { if (!isLoadingArticle) setImageGenerationMessage(null); }, 5000);
     }
-  };
+  }, [toast, user?.uid, isLoadingArticle]);
 
 
-  const handleSaveArticle = async () => {
+  const handleSaveArticle = useCallback(async () => {
     if (!user?.uid) {
       toast({ title: "Error", description: "You must be logged in to save articles.", variant: "destructive" });
       return;
@@ -159,9 +160,9 @@ export default function GeneratorPage() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [toast, user?.uid, generatedArticle]);
 
-  const handleExportMarkdown = () => {
+  const handleExportMarkdown = useCallback(() => {
     if (!generatedArticle) return;
     const { title, content, topic, category, tone, timestamp, imageUrl } = generatedArticle;
     const formattedTimestamp = timestamp ? format(new Date(timestamp), "MMMM d, yyyy, h:mm a") : 'N/A';
@@ -193,9 +194,9 @@ ${content}
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast({ title: "Export Successful", description: `${filename} has been downloaded.` });
-  };
+  }, [generatedArticle, toast]);
 
-  const handleExportPdf = async () => {
+  const handleExportPdf = useCallback(async () => {
     if (!generatedArticle) return;
     setIsExportingPdf(true);
     toast({ title: "Generating PDF...", description: "This may take a few moments." });
@@ -232,7 +233,7 @@ ${content}
     
     pdfElement.innerHTML = htmlContent;
     document.body.appendChild(pdfElement);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Ensure image is loaded in the offscreen div
 
     try {
       const canvas = await html2canvas(pdfElement, { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' });
@@ -243,8 +244,8 @@ ${content}
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
       const ratio = canvasWidth / canvasHeight;
-      const imgWidthInPdf = pdfWidth - 40;
-      let position = 20;
+      const imgWidthInPdf = pdfWidth - 40; // 20pt margin on each side
+      let position = 20; // Initial y position
       let remainingCanvasHeight = canvasHeight;
       let pageCanvasStartY = 0;
 
@@ -252,21 +253,23 @@ ${content}
         const pageCanvas = document.createElement('canvas');
         const pageCtx = pageCanvas.getContext('2d');
         if (!pageCtx) throw new Error("Could not get 2D context for page canvas");
-        const maxContentHeightOnPage = (pdfHeight - 40) * (canvasWidth / imgWidthInPdf);
+        // Calculate how much of the original canvas can fit on one PDF page
+        const maxContentHeightOnPage = (pdfHeight - 40) * (canvasWidth / imgWidthInPdf); // Height of canvas content that fits one PDF page
         const segmentHeightOnCanvas = Math.min(remainingCanvasHeight, maxContentHeightOnPage);
         pageCanvas.width = canvasWidth;
         pageCanvas.height = segmentHeightOnCanvas;
+        // Draw the segment of the original canvas onto the page-specific canvas
         pageCtx.drawImage(canvas, 0, pageCanvasStartY, canvasWidth, segmentHeightOnCanvas, 0, 0, canvasWidth, segmentHeightOnCanvas);
         const pageImgData = pageCanvas.toDataURL('image/png');
         const segmentImgHeightInPdf = imgWidthInPdf * (segmentHeightOnCanvas / canvasWidth);
-        if (position !== 20) {
+        if (position !== 20) { // If not the first page, add a new page
           pdf.addPage();
-          position = 20;
+          position = 20; // Reset position for new page
         }
         pdf.addImage(pageImgData, 'PNG', 20, position, imgWidthInPdf, segmentImgHeightInPdf);
         remainingCanvasHeight -= segmentHeightOnCanvas;
         pageCanvasStartY += segmentHeightOnCanvas;
-        if (remainingCanvasHeight > 0) position = pdfHeight;
+        if (remainingCanvasHeight > 0) position = pdfHeight; // Set position to max height for next addPage check, effectively
       }
       pdf.save(filename);
       toast({ title: "PDF Export Successful!", description: `${filename} has been downloaded.` });
@@ -277,7 +280,7 @@ ${content}
       document.body.removeChild(pdfElement);
       setIsExportingPdf(false);
     }
-  };
+  }, [generatedArticle, toast]);
 
 
   return (
@@ -418,10 +421,10 @@ ${content}
                 <span>{imageGenerationMessage} Displaying article text.</span>
               </div>
           )}
-           {generatedArticle.imageUrl && (
+           {generatedArticle.imageUrl && imageGenerationMessage && ( // Ensure message is displayed only if image exists
               <div className="flex items-start p-3 my-4 rounded-md bg-green-50 border border-green-200 text-green-700 dark:bg-green-900/30 dark:border-green-700/50 dark:text-green-300 text-xs">
                 <ImageIconLucide className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
-                <span>{imageGenerationMessage || "Article and image generated!"} Review carefully before any use.</span>
+                <span>{imageGenerationMessage} Review carefully before any use.</span>
               </div>
           )}
 
