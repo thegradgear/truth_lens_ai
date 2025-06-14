@@ -3,9 +3,9 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button'; // Added buttonVariants for consistency if needed elsewhere.
+import { Button } from '@/components/ui/button';
 import type { GeneratedArticle, DetectedArticle, Article } from '@/types';
-import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download, Trash2, MoreVertical } from 'lucide-react';
+import { Bot, CheckCircle, AlertTriangle, Clock, Tag, Type, Save, Loader2, Database, Brain, MessageSquareQuote, ExternalLink, ListChecks, FileText, Download, Trash2, MoreVertical, Maximize } from 'lucide-react';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -25,6 +25,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription as DialogDescriptionDetail, // Renamed to avoid conflict
+  DialogHeader as DialogHeaderDetail,
+  DialogTitle as DialogTitleDetail,
+  DialogFooter as DialogFooterDetail,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -33,14 +42,14 @@ import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useAuth } from '@/contexts/AuthContext';
-import { deleteArticle as deleteArticleFromDb, saveArticle } from '@/lib/firebase';
+import { deleteArticle as deleteArticleFromDb } from '@/lib/firebase';
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
 
 export interface ArticleCardProps {
   article: Article;
-  onDelete?: (articleId: string) => Promise<void>; // For saved page to update list
+  onDelete?: (articleId: string) => Promise<void>; 
 }
 
 export function ArticleCard({ article, onDelete }: ArticleCardProps) {
@@ -49,6 +58,7 @@ export function ArticleCard({ article, onDelete }: ArticleCardProps) {
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   const isGenerated = article.type === 'generated';
   const articleData = article as GeneratedArticle | DetectedArticle;
@@ -60,7 +70,7 @@ export function ArticleCard({ article, onDelete }: ArticleCardProps) {
     setIsDeleting(true);
     try {
       await deleteArticleFromDb(user.uid, article.id);
-      await onDelete(article.id); // Callback to update parent component's state
+      await onDelete(article.id); 
       toast({
         title: "Article Removed",
         description: "The article has been successfully removed from your history.",
@@ -178,12 +188,12 @@ ${factChecksMd.trim()}
     const pdfElement = document.createElement('div');
     pdfElement.style.position = 'absolute';
     pdfElement.style.left = '-9999px';
-    pdfElement.style.width = '800px'; // Standard A4 width approximation for rendering
+    pdfElement.style.width = '800px'; 
     pdfElement.style.padding = '20px';
     pdfElement.style.fontFamily = 'Arial, sans-serif';
     pdfElement.style.fontSize = '12px';
     pdfElement.style.color = '#333';
-    pdfElement.style.backgroundColor = '#fff'; // Ensure background is white for canvas
+    pdfElement.style.backgroundColor = '#fff'; 
 
     let htmlContent = '';
 
@@ -266,7 +276,6 @@ ${factChecksMd.trim()}
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
-      // const ratio = canvasWidth / canvasHeight; // Not directly used for multi-page
       const imgWidthInPdf = pdfWidth - 40; 
       
       let position = 20; 
@@ -289,9 +298,9 @@ ${factChecksMd.trim()}
         const pageImgData = pageCanvas.toDataURL('image/png');
         const segmentImgHeightInPdf = imgWidthInPdf * (segmentHeightOnCanvas / canvasWidth); 
 
-        if (position !== 20) { // if it's not the first page for this canvas
+        if (position !== 20) { 
           pdf.addPage();
-          position = 20; // Reset position for new page
+          position = 20; 
         }
 
         pdf.addImage(pageImgData, 'PNG', 20, position, imgWidthInPdf, segmentImgHeightInPdf);
@@ -299,8 +308,8 @@ ${factChecksMd.trim()}
         remainingCanvasHeight -= segmentHeightOnCanvas;
         pageCanvasStartY += segmentHeightOnCanvas;
         
-        if (remainingCanvasHeight > 0) { // If more content, prepare for a new page in the next iteration
-           position = pdfHeight; // Mark that next addImage should be on a new page (will trigger addPage)
+        if (remainingCanvasHeight > 0) { 
+           position = pdfHeight; 
         }
       }
 
@@ -340,7 +349,6 @@ ${factChecksMd.trim()}
             variant="ghost"
             size="icon"
             className="h-8 w-8 shrink-0"
-            onClick={(e) => e.stopPropagation()} 
           >
             <MoreVertical className="h-4 w-4" />
             <span className="sr-only">Article Options</span>
@@ -370,6 +378,7 @@ ${factChecksMd.trim()}
   );
 
   return (
+    <>
     <Card className="shadow-lg w-full flex flex-col overflow-hidden">
       {isGenerated && (articleData as GeneratedArticle).imageUrl && (
         <div
@@ -385,26 +394,39 @@ ${factChecksMd.trim()}
       )}
 
       <CardHeader>
-        <div className="flex items-center justify-between w-full"> {/* Main row for title, badge, menu */}
-          <CardTitle className="font-headline text-xl flex items-center mr-2 flex-grow min-w-0"> {/* Title part */}
-            {isGenerated ? ( // Icon logic
-              <Bot className="mr-2 h-6 w-6 text-primary shrink-0" />
-            ) : (
-              resultLabel === 'Real' ?
-              <CheckCircle className="mr-2 h-6 w-6 text-green-500 shrink-0" /> :
-              <AlertTriangle className="mr-2 h-6 w-6 text-destructive shrink-0" />
+        <div className="flex items-start justify-between w-full gap-2">
+          <div className="flex-grow min-w-0">
+            <CardTitle className="font-headline text-xl flex items-center">
+              {isGenerated ? (
+                <Bot className="mr-2 h-6 w-6 text-primary shrink-0" />
+              ) : (
+                resultLabel === 'Real' ?
+                <CheckCircle className="mr-2 h-6 w-6 text-green-500 shrink-0" /> :
+                <AlertTriangle className="mr-2 h-6 w-6 text-destructive shrink-0" />
+              )}
+              <span className="truncate">{cardTitle}</span>
+            </CardTitle>
+            {!isGenerated && detectedArticleData && (
+              <CardDescription className="mt-1">
+                Confidence: {confidenceScore}%
+              </CardDescription>
             )}
-            <span className="truncate">{cardTitle}</span> {/* Title text with truncation */}
-          </CardTitle>
+            {isGenerated && (
+              <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
+                <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Category: {(articleData as GeneratedArticle).category}</span>
+                <span className="flex items-center"><MessageSquareQuote className="mr-1 h-3 w-3" /> Tone: {(articleData as GeneratedArticle).tone}</span>
+              </div>
+            )}
+          </div>
           
-          <div className="flex items-center shrink-0"> {/* Group for badge and action menu */}
-            {!isGenerated && detectedArticleData && ( // Badge
+          <div className="flex items-center shrink-0 space-x-1">
+            {!isGenerated && detectedArticleData && (
               <TooltipProvider delayDuration={0}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                      <Badge 
-                       variant={resultLabel === 'Real' ? 'success' : 'destructive'} 
-                       className={cn(article.id && onDelete && user?.uid && "mr-2")} // Add margin if ActionMenu is also present
+                       variant={resultLabel === 'Real' ? 'success' : 'destructive'}
                      >
                         {resultLabel}
                       </Badge>
@@ -415,79 +437,39 @@ ${factChecksMd.trim()}
                 </Tooltip>
               </TooltipProvider>
             )}
-            {article.id && onDelete && user?.uid && <ActionMenu />} {/* Action Menu */}
+            {article.id && onDelete && user?.uid && <ActionMenu />}
           </div>
         </div>
-
-        {!isGenerated && detectedArticleData && (
-          <CardDescription className="mt-1">
-            Confidence: {confidenceScore}%
-          </CardDescription>
-        )}
-        {isGenerated && (
-          <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 mt-1">
-            <span className="flex items-center"><Tag className="mr-1 h-3 w-3" /> Topic: {(articleData as GeneratedArticle).topic}</span>
-            <span className="flex items-center"><Type className="mr-1 h-3 w-3" /> Category: {(articleData as GeneratedArticle).category}</span>
-            <span className="flex items-center"><MessageSquareQuote className="mr-1 h-3 w-3" /> Tone: {(articleData as GeneratedArticle).tone}</span>
-          </div>
-        )}
       </CardHeader>
       
-      <CardContent className="flex-grow">
-        <ScrollArea className="max-h-[200px] pr-3">
-            <div className="text-sm text-foreground m-0">
-                <p className="whitespace-pre-wrap">
-                    {fullText}
-                </p>
-            </div>
-        </ScrollArea>
+      <CardContent className="flex-grow space-y-3">
+        <div className="text-sm text-foreground m-0">
+            <p className="whitespace-pre-wrap line-clamp-4">
+                {fullText}
+            </p>
+        </div>
 
         {!isGenerated && justification && (
           <>
-            <Separator className="my-3" />
+            <Separator />
             <div>
-                <h4 className="font-semibold text-md mb-2 flex items-center"><FileText className="mr-2 h-5 w-5 text-primary"/>AI Justification:</h4>
-                <ScrollArea className="max-h-[150px] pr-3">
-                    <ul className="list-disc list-inside text-sm space-y-1 pl-2 text-muted-foreground">
-                    {justification.split('\n').map((item, index) => {
-                        const cleanedItem = item.trim().replace(/^[-*]\s*/, '');
-                        return cleanedItem.length > 0 && <li key={index}>{cleanedItem}</li>;
-                    })}
-                    </ul>
-                </ScrollArea>
+                <h4 className="font-semibold text-sm mb-1 flex items-center"><FileText className="mr-2 h-4 w-4 text-primary"/>AI Justification:</h4>
+                <ul className="list-disc list-inside text-xs space-y-1 pl-2 text-muted-foreground line-clamp-3">
+                {justification.split('\n').map((item, index) => {
+                    const cleanedItem = item.trim().replace(/^[-*]\s*/, '');
+                    return cleanedItem.length > 0 && <li key={index}>{cleanedItem}</li>;
+                })}
+                </ul>
             </div>
           </>
         )}
-         {!isGenerated && factChecks && factChecks.length > 0 && (
-           <>
-            <Separator className="my-3" />
-            <div>
-                <h4 className="font-semibold text-md mb-2 flex items-center"><ListChecks className="mr-2 h-5 w-5 text-primary"/>External Fact-Checks (Mock Data):</h4>
-                <ScrollArea className="max-h-[200px] pr-3">
-                    <div className="space-y-3">
-                    {factChecks.map((fc, index) => (
-                        <div key={index} className="p-3 border rounded-md bg-secondary/30">
-                        <p className="text-sm font-medium">{fc.claimReviewed}</p>
-                        <p className="text-xs text-muted-foreground">Source: {fc.source} - Rating: <span className="font-semibold">{fc.rating}</span></p>
-                        {fc.url && (
-                            <a href={fc.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center mt-1">
-                            View Source <ExternalLink className="ml-1 h-3 w-3"/>
-                            </a>
-                        )}
-                        </div>
-                    ))}
-                    </div>
-                </ScrollArea>
-            </div>
-           </>
-        )}
       </CardContent>
 
-      <CardFooter className="flex flex-col xs:flex-row justify-between items-start xs:items-center border-t pt-4 gap-2">
-        <div className="flex flex-col xs:flex-row xs:flex-wrap xs:items-center gap-x-3 gap-y-1 text-xs text-muted-foreground w-full">
+      <CardFooter className="flex flex-col xs:flex-row justify-between items-start xs:items-center border-t pt-3 pb-3 gap-2">
+        <div className="flex flex-col xs:flex-row xs:flex-wrap xs:items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <div className="flex items-center shrink-0">
             <Clock className="mr-1 h-3 w-3" />
-            {articleData.timestamp ? format(new Date(articleData.timestamp), "MMM d, yyyy, h:mm a") : 'Processing date...'}
+            {articleData.timestamp ? format(new Date(articleData.timestamp), "MMM d, yy, h:mm a") : 'Processing date...'}
           </div>
           {detectedArticleData?.detectionMethod && (
             <TooltipProvider delayDuration={0}>
@@ -513,25 +495,124 @@ ${factChecksMd.trim()}
             </TooltipProvider>
           )}
         </div>
+        <Button variant="outline" size="sm" onClick={() => setIsDetailModalOpen(true)} className="mt-2 xs:mt-0 xs:ml-auto">
+            <Maximize className="mr-2 h-3 w-3" /> View Details
+        </Button>
       </CardFooter>
-
-      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently remove the article from your saved history.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm} disabled={isDeleting} className={buttonVariants({ variant: "destructive" })}>
-              {isDeleting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Removing...</> : "Yes, Remove"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
     </Card>
+
+    <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+        <DialogContent className="max-w-2xl w-[90vw] max-h-[90vh]">
+            <DialogHeaderDetail>
+                <DialogTitleDetail className="text-2xl font-headline flex items-center">
+                 {isGenerated ? (
+                    <Bot className="mr-3 h-7 w-7 text-primary shrink-0" />
+                  ) : (
+                    resultLabel === 'Real' ?
+                    <CheckCircle className="mr-3 h-7 w-7 text-green-500 shrink-0" /> :
+                    <AlertTriangle className="mr-3 h-7 w-7 text-destructive shrink-0" />
+                  )}
+                  {cardTitle}
+                </DialogTitleDetail>
+                <DialogDescriptionDetail className="text-xs text-muted-foreground pt-1">
+                  {isGenerated ? "Generated Article Details" : "Detected Article Analysis"}
+                   {' - '}
+                  {articleData.timestamp ? format(new Date(articleData.timestamp), "MMMM d, yyyy, h:mm a") : 'Timestamp not available'}
+                </DialogDescriptionDetail>
+            </DialogHeaderDetail>
+            
+            <ScrollArea className="max-h-[calc(90vh-12rem)] pr-5">
+                <div className="space-y-4 py-4">
+                    {isGenerated && (articleData as GeneratedArticle).imageUrl && (
+                        <div className="relative aspect-video w-full rounded-md overflow-hidden border mb-4">
+                        <Image
+                            src={(articleData as GeneratedArticle).imageUrl!}
+                            alt={`Header for: ${cardTitle}`}
+                            layout="fill"
+                            objectFit="cover"
+                        />
+                        </div>
+                    )}
+
+                    {isGenerated && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm mb-4 p-3 border rounded-md bg-secondary/20">
+                            <div><span className="font-semibold text-primary">Topic:</span> {(articleData as GeneratedArticle).topic}</div>
+                            <div><span className="font-semibold text-primary">Category:</span> {(articleData as GeneratedArticle).category}</div>
+                            <div><span className="font-semibold text-primary">Tone:</span> {(articleData as GeneratedArticle).tone}</div>
+                        </div>
+                    )}
+
+                    {!isGenerated && detectedArticleData && (
+                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm mb-4 p-3 border rounded-md bg-secondary/20">
+                            <div><span className="font-semibold text-primary">Prediction:</span> <span className={cn(resultLabel === 'Fake' ? 'text-destructive' : 'text-green-600', "font-bold")}>{resultLabel}</span></div>
+                            <div><span className="font-semibold text-primary">Confidence:</span> {confidenceScore}%</div>
+                            <div><span className="font-semibold text-primary">Model:</span> {detectedArticleData.detectionMethod === 'custom' ? 'Custom' : 'Genkit AI'}</div>
+                        </div>
+                    )}
+                    
+                    <div>
+                        <h4 className="font-semibold text-lg mb-2 text-primary border-b pb-1">Full Article Text:</h4>
+                        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{fullText}</p>
+                    </div>
+
+                    {!isGenerated && justification && (
+                        <div className="mt-4">
+                            <h4 className="font-semibold text-lg mb-2 text-primary border-b pb-1">AI Justification:</h4>
+                            <ul className="list-disc list-inside text-sm space-y-1 pl-3 text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                            {justification.split('\n').map((item, index) => {
+                                const cleanedItem = item.trim().replace(/^[-*]\s*/, '');
+                                return cleanedItem.length > 0 && <li key={index}>{cleanedItem}</li>;
+                            })}
+                            </ul>
+                        </div>
+                    )}
+
+                    {!isGenerated && factChecks && factChecks.length > 0 && (
+                        <div className="mt-4">
+                            <h4 className="font-semibold text-lg mb-2 text-primary border-b pb-1">External Fact-Checks (Mock Data):</h4>
+                            <div className="space-y-3">
+                            {factChecks.map((fc, index) => (
+                                <div key={index} className="p-3 border rounded-md bg-muted/50">
+                                <p className="text-sm font-medium">{fc.claimReviewed}</p>
+                                <p className="text-xs text-muted-foreground">Source: {fc.source} - Rating: <span className="font-semibold">{fc.rating}</span></p>
+                                {fc.url && (
+                                    <a href={fc.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center mt-1">
+                                    View Source <ExternalLink className="ml-1 h-3 w-3"/>
+                                    </a>
+                                )}
+                                </div>
+                            ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </ScrollArea>
+
+            <DialogFooterDetail className="pt-4">
+                <DialogClose asChild>
+                    <Button variant="outline">Close</Button>
+                </DialogClose>
+            </DialogFooterDetail>
+        </DialogContent>
+    </Dialog>
+
+
+    <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently remove the article from your saved history.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDeleteConfirm} disabled={isDeleting} className={buttonVariants({ variant: "destructive" })}>
+            {isDeleting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Removing...</> : "Yes, Remove"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
